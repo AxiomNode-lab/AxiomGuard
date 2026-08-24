@@ -8,8 +8,9 @@ export { createCsrfToken, verifyCsrfToken, type CreateCsrfTokenOptions, type Ver
 export { requireEnv, validateEnv, type EnvRule, type EnvSchema, type EnvType, type EnvValidationResult } from './env.js';
 export { maskPII, redactSecrets, type MaskPIIOptions, type RedactSecretsOptions } from './logging.js';
 export { getSecurityHeaderPreset, createPresetSecurityHeaders, type SecurityPresetName } from './presets.js';
-export { MemoryRateLimitStore, checkRateLimit, type RateLimitOptions, type RateLimitResult, type RateLimitStore, type RateLimitStoreState } from './rate-limit.js';
+export { MemoryRateLimitStore, checkRateLimit, createRateLimitHeaders, type RateLimitHeaderOptions, type RateLimitOptions, type RateLimitResult, type RateLimitStore, type RateLimitStoreState } from './rate-limit.js';
 export { createFindingFingerprint, createSecretScanBaseline, findingsToSarif, parseSecretScanBaseline, parseSecretScannerConfig, scanSecrets, type SecretFinding, type SecretScanBaseline, type SecretScannerConfig, type SecretScanOptions } from './scanner.js';
 export { assertSafeResolvedUrl, assertSafeUrl, isPrivateIPAddress, validateRedirect, type SafeUrlOptions } from './web.js';
+export { safeFetch, type SafeFetchOptions } from './fetch.js';
 export { safePath, sanitizeFilename } from './filesystem.js';
 export { createExpressSecurityMiddleware, createFastifySecurityHook, createHonoSecurityMiddleware, createIORedisRateLimitStore, createIORedisReplayStore, createNodeRedisRateLimitStore, createNodeRedisReplayStore, type SecurityAdapterOptions } from './adapters/index.js';
