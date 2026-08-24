@@ -1,0 +1,62 @@
+{
+  "name": "@axiomnode-lab/guard",
+  "version": "0.1.0",
+  "description": "Security-first TypeScript toolkit for secret redaction, environment validation, webhook verification, safe URLs, paths, tokens, and repository scanning.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "axiomguard": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "prepack": "npm run build",
+    "scan:self": "npm run build && node dist/cli.js scan ."
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AxiomNode-lab/AxiomGuard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AxiomNode-lab/AxiomGuard/issues"
+  },
+  "homepage": "https://github.com/AxiomNode-lab/AxiomGuard#readme",
+  "keywords": [
+    "security",
+    "typescript",
+    "nodejs",
+    "cybersecurity",
+    "application-security",
+    "web-security",
+    "secret-redaction",
+    "webhooks",
+    "ssrf",
+    "developer-tools"
+  ],
+  "author": "AxiomNode Lab contributors",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "25.1.0",
+    "typescript": "5.8.3"
+  }
+}
