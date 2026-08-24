@@ -19,7 +19,7 @@ It is intentionally narrow. AxiomGuard is not a WAF, a secrets manager, an antiv
 
 ## Install
 
-AxiomGuard is published through GitHub Packages.
+AxiomGuard is configured to publish through GitHub Packages. The install command below becomes available after the first tagged release is published.
 
 ```ini
 # ~/.npmrc
@@ -130,7 +130,7 @@ The scanner is deliberately conservative. Findings contain the rule name, file p
 npx axiomguard scan .
 ```
 
-Container usage:
+Container usage after the first release:
 
 ```bash
 docker run --rm \
