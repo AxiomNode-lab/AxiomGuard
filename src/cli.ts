@@ -15,10 +15,10 @@ import {
 interface CliOptions {
   target: string;
   format: 'text' | 'json' | 'sarif';
-  output?: string;
-  config?: string;
-  baseline?: string;
-  writeBaseline?: string;
+  output?: string | undefined;
+  config?: string | undefined;
+  baseline?: string | undefined;
+  writeBaseline?: string | undefined;
   noFail: boolean;
   githubAnnotations: boolean;
 }
