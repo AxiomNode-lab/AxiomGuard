@@ -45,6 +45,15 @@ jobs:
           fi
       - name: Publish to GitHub Packages
         if: steps.version.outputs.publish == 'true'
-        run: npm publish
+        run: npm publish --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify package version in GitHub Packages
+        if: steps.version.outputs.publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com)"
+          test "$ACTUAL" = "$VERSION"
+          echo "Verified @axiomnode-lab/guard@${VERSION} in GitHub Packages."

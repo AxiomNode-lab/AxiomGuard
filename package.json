@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A zero-runtime-dependency security SDK for Node.js: webhooks, API keys, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "./adapters/redis": { "types": "./dist/adapters/redis.d.ts", "import": "./dist/adapters/redis.js" }
   },
   "bin": { "axiomguard": "./dist/cli.js" },
-  "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "RESEARCH.md"],
+  "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "RESEARCH.md", "docs/SCANNER.md", "docs/PACKAGES.md"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -42,7 +42,7 @@
   "repository": { "type": "git", "url": "git+https://github.com/AxiomNode-lab/AxiomGuard.git" },
   "bugs": { "url": "https://github.com/AxiomNode-lab/AxiomGuard/issues" },
   "homepage": "https://github.com/AxiomNode-lab/AxiomGuard#readme",
-  "keywords": ["security", "typescript", "nodejs", "application-security", "webhooks", "api-keys", "ssrf", "csp", "csrf", "cors", "rate-limit", "sarif", "developer-tools"],
+  "keywords": ["security", "typescript", "nodejs", "application-security", "webhooks", "api-keys", "ssrf", "csp", "csrf", "cors", "rate-limit", "sarif", "secret-scanning", "developer-tools"],
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
   "engines": { "node": ">=20" },
