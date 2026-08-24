@@ -63,7 +63,7 @@ export function createSecurityHeaders(options: SecurityHeadersOptions = {}): Rec
   const corp = options.crossOriginResourcePolicy === undefined ? 'same-origin' : options.crossOriginResourcePolicy;
   if (corp !== false) headers['Cross-Origin-Resource-Policy'] = corp;
   const coep = options.crossOriginEmbedderPolicy;
-  if (coep && coep !== false) headers['Cross-Origin-Embedder-Policy'] = coep;
+  if (coep !== undefined && coep !== false) headers['Cross-Origin-Embedder-Policy'] = coep;
   if (options.originAgentCluster ?? true) headers['Origin-Agent-Cluster'] = '?1';
   const dns = options.dnsPrefetchControl === undefined ? 'off' : options.dnsPrefetchControl;
   if (dns !== false) headers['X-DNS-Prefetch-Control'] = dns;
