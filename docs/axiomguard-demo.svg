@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300" role="img" aria-label="AxiomGuard terminal demo">
+  <rect width="1000" height="300" rx="22" fill="#0d1117"/>
+  <rect x="1" y="1" width="998" height="298" rx="21" fill="none" stroke="#30363d"/>
+
+  <circle cx="34" cy="30" r="7" fill="#ff5f56"/>
+  <circle cx="58" cy="30" r="7" fill="#ffbd2e"/>
+  <circle cx="82" cy="30" r="7" fill="#27c93f"/>
+  <text x="500" y="36" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">axiomguard — terminal</text>
+  <line x1="0" y1="58" x2="1000" y2="58" stroke="#21262d"/>
+
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .line { opacity: 0; animation: reveal 9s infinite; }
+    .l1 { animation-delay: .3s; }
+    .l2 { animation-delay: 1.7s; }
+    .l3 { animation-delay: 3.1s; }
+    .l4 { animation-delay: 4.5s; }
+    .l5 { animation-delay: 5.9s; }
+    .cursor { animation: blink 1s steps(1,end) infinite; }
+    @keyframes reveal {
+      0%, 8% { opacity: 0; transform: translateY(4px); }
+      12%, 82% { opacity: 1; transform: translateY(0); }
+      92%, 100% { opacity: 0; }
+    }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  </style>
+
+  <text class="line l1" x="34" y="96" fill="#c9d1d9" font-size="18"><tspan fill="#3fb950">$</tspan> npx axiomguard scan .</text>
+  <text class="line l2" x="34" y="136" fill="#8b949e" font-size="17">scanning 42 files…</text>
+  <text class="line l3" x="34" y="176" fill="#58a6ff" font-size="17">✓ no secret values printed</text>
+  <text class="line l4" x="34" y="216" fill="#58a6ff" font-size="17">✓ path, URL and webhook guards ready</text>
+  <text class="line l5" x="34" y="256" fill="#3fb950" font-size="17">clean — exit 0</text>
+  <rect class="cursor" x="251" y="242" width="10" height="18" rx="1" fill="#c9d1d9"/>
+</svg>
