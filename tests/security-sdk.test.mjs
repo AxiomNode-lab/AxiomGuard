@@ -10,11 +10,16 @@ test('secure cookies enforce host prefix invariants', () => {
   assert.throws(() => serializeCookie('session', 'abc', { sameSite: 'None', secure: false }));
 });
 
-test('cors rejects wildcard credentials and varies explicit origins', () => {
+test('cors rejects unsafe policies and varies explicit origins', () => {
   assert.throws(() => createCorsHeaders('https://app.example', { origins: '*', allowCredentials: true }));
-  const headers = createCorsHeaders('https://app.example', { origins: ['https://app.example'], allowCredentials: true });
+  assert.throws(() => createCorsHeaders('null', { origins: '*' }));
+  assert.throws(() => createCorsHeaders('file:///tmp/test', { origins: '*' }));
+  const headers = createCorsHeaders('https://app.example', { origins: ['https://app.example'], allowCredentials: true, allowPrivateNetwork: true });
   assert.equal(headers?.['Access-Control-Allow-Origin'], 'https://app.example');
   assert.equal(headers?.Vary, 'Origin');
+  assert.equal(headers?.['Access-Control-Allow-Private-Network'], 'true');
+  const nullHeaders = createCorsHeaders('null', { origins: ['null'], allowNullOrigin: true });
+  assert.equal(nullHeaders?.['Access-Control-Allow-Origin'], 'null');
 });
 
 test('csrf token is signed, session bound and expiring', () => {
