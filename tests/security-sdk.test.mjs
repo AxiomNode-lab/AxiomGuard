@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
+import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, redactSecrets, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
 
 test('secure cookies enforce host prefix invariants', () => {
   const value = serializeCookie('__Host-session', 'abc', { sameSite: 'Strict' });
@@ -35,6 +35,13 @@ test('header helper emits cross-origin protections and CSP report-only', () => {
 test('env supports ports numbers json and defaults', () => {
   const result = validateEnv({ PORT: { type: 'port' }, RATIO: { type: 'number', min: 0, max: 1 }, FLAGS: { type: 'json' }, MODE: { default: 'prod', required: false } }, { PORT: '443', RATIO: '0.5', FLAGS: '{"a":true}' });
   assert.equal(result.ok, true); assert.equal(result.values.PORT, 443); assert.equal(result.values.RATIO, 0.5); assert.deepEqual(result.values.FLAGS, { a: true }); assert.equal(result.values.MODE, 'prod');
+});
+
+test('redaction supports explicit wildcard object paths', () => {
+  const result = redactSecrets({ users: [{ profile: { value: 'a' } }, { profile: { value: 'b' } }], req: { headers: { xApi: 'plain-value' } } }, { paths: ['users.*.profile', 'req.headers.xApi'] });
+  assert.equal(result.users[0].profile, '[REDACTED]');
+  assert.equal(result.users[1].profile, '[REDACTED]');
+  assert.equal(result.req.headers.xApi, '[REDACTED]');
 });
 
 test('github webhook helper verifies sha256 signatures', () => {
