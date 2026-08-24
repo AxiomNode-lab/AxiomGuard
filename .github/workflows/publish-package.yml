@@ -1,6 +1,7 @@
 name: Publish npm package
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: npm pack --dry-run
       - name: Check whether this version already exists
         id: version
         shell: bash
@@ -45,15 +47,31 @@ jobs:
           fi
       - name: Publish to GitHub Packages
         if: steps.version.outputs.publish == 'true'
-        run: npm publish --ignore-scripts
+        shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          npm publish --ignore-scripts 2>&1 | tee /tmp/axiomguard-publish.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::GitHub Packages publish failed. For a first organization package, verify Organization Settings > Packages > Package creation allows the intended package type/visibility and that this workflow retains packages: write permission."
+            exit "$STATUS"
+          fi
       - name: Verify package version in GitHub Packages
         if: steps.version.outputs.publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com)"
-          test "$ACTUAL" = "$VERSION"
-          echo "Verified @axiomnode-lab/guard@${VERSION} in GitHub Packages."
+          for ATTEMPT in 1 2 3 4 5; do
+            ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com 2>/dev/null || true)"
+            if [ "$ACTUAL" = "$VERSION" ]; then
+              echo "Verified @axiomnode-lab/guard@${VERSION} in GitHub Packages."
+              exit 0
+            fi
+            sleep $((ATTEMPT * 3))
+          done
+          echo "::error::Published package version ${VERSION} was not readable back from GitHub Packages after retries."
+          exit 1

@@ -2,7 +2,44 @@
 
 All notable changes to this project are documented here.
 
-## [0.3.0] - Unreleased
+## [0.5.0] - Unreleased
+
+### Added
+
+- `safeFetch()` for guarded outbound HTTP(S) requests with initial and per-redirect URL/DNS validation.
+- Cross-origin redirect stripping for `Authorization`, `Cookie`, and `Proxy-Authorization` by default.
+- Total redirect-chain timeout and bounded redirect depth for guarded fetches.
+- Fail-closed rejection of transport authority/framing header overrides and request-body replay across preserving redirects.
+- `createRateLimitHeaders()` for current IETF draft `RateLimit-Policy`/`RateLimit` fields, compatibility fields, and `Retry-After` on blocked requests.
+- Package subpath import smoke tests covering every documented export.
+- `docs/SAFE_FETCH.md` with explicit SSRF/DNS-rebinding boundaries.
+- Manual `workflow_dispatch` support for GitHub Packages publishing and post-publish read-back verification.
+
+### Changed
+
+- `RateLimitResult` now includes the configured `windowMs` so response policies can be rendered without duplicating configuration.
+- GitHub Packages publish qualification now includes `npm pack --dry-run` and clearer first-package diagnostics.
+- Package version advanced to `0.5.0` and added the `/fetch` export.
+
+## [0.4.0]
+
+### Added
+
+- Deterministic non-secret scanner fingerprints.
+- `.axiomguard.json` configuration with narrow file/directory exclusions.
+- Reviewed baseline files and `--write-baseline` support.
+- CLI `--config`, `--baseline`, and `--github-annotations` options.
+- SARIF partial fingerprints for result correlation without credential values.
+- GitHub Action inputs for config, baseline, and workflow annotations.
+- Scanner regression coverage for baselines, globs, configuration validation, and SARIF secrecy.
+- `docs/SCANNER.md` and `docs/PACKAGES.md`.
+
+### Changed
+
+- GitHub Packages workflow verifies a new package version after publishing.
+- Container image metadata explicitly identifies the source repository.
+
+## [0.3.0]
 
 ### Added
 
@@ -21,8 +58,7 @@ All notable changes to this project are documented here.
 
 - Scanner implementation moved from the CLI into `@axiomnode-lab/guard/scanner` for programmatic use.
 - Package exports expanded with `/presets`, `/rate-limit`, `/scanner`, and `/adapters/*` entry points.
-- Package version advanced to `0.3.0`.
-- CI now smoke-tests the repository's own GitHub Action in addition to Node.js 20/22/24 qualification.
+- CI smoke-tests the repository's own GitHub Action in addition to Node.js 20/22/24 qualification.
 
 ## [0.2.0]
 

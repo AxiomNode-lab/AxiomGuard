@@ -3,7 +3,7 @@
 
   <h1>AxiomGuard</h1>
   <p><strong>Security building blocks for Node.js and TypeScript services.</strong></p>
-  <p>Zero runtime dependencies · modular imports · framework adapters · SARIF-ready scanning</p>
+  <p>Zero runtime dependencies · modular imports · guarded outbound fetches · framework adapters · SARIF-ready scanning</p>
 
   [![CI](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml)
   [![GitHub package](https://img.shields.io/badge/GitHub%20Packages-%40axiomnode--lab%2Fguard-181717?logo=github)](https://github.com/orgs/AxiomNode-lab/packages)
@@ -12,7 +12,7 @@
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 </div>
 
-AxiomGuard collects backend security controls that are easy to rewrite badly and annoying to install as a dozen unrelated packages: API keys, webhook verification, replay protection, secure cookies, CSRF tokens, CORS policy, defensive headers, SSRF-oriented URL checks, rate limiting, environment validation, secret-safe logging, path safety and repository scanning.
+AxiomGuard collects backend security controls that are easy to rewrite badly and annoying to install as a dozen unrelated packages: API keys, webhook verification, replay protection, secure cookies, CSRF tokens, CORS policy, defensive headers, SSRF-oriented URL checks and outbound fetches, rate limiting, environment validation, secret-safe logging, path safety and repository scanning.
 
 It stays intentionally small. Core and adapters have **no runtime npm dependencies**, and security assumptions are documented next to the feature instead of hidden behind a generic “secure by default” claim.
 
@@ -44,11 +44,12 @@ The repository also contains an npmjs publishing path for public distribution. I
 | `/headers` | CSP/nonces, HSTS, cross-origin and defensive headers |
 | `/presets` | Explicit `api`, `web`, and `isolated` header presets |
 | `/web` | SSRF-oriented URL/DNS checks and redirect allowlists |
-| `/rate-limit` | Fixed-window limiter with a pluggable store |
+| `/fetch` | Redirect-aware guarded Fetch API wrapper with per-hop validation |
+| `/rate-limit` | Fixed-window limiter, Redis adapters and response-header helpers |
 | `/logging` | Key-, pattern- and path-based secret redaction plus PII masking |
 | `/env` | Typed environment parsing, defaults, ranges and allowlists |
 | `/filesystem` | Traversal-safe paths and filename sanitization |
-| `/scanner` | Programmatic secret scanning and SARIF generation |
+| `/scanner` | Programmatic secret scanning, baselines, fingerprints and SARIF |
 | `/adapters/*` | Express, Fastify, Hono and Redis integration layers |
 | `axiomguard` | CLI scanner |
 
@@ -106,6 +107,7 @@ Equivalent adapters are available for Fastify and Hono. See [docs/ADAPTERS.md](d
 import {
   MemoryRateLimitStore,
   checkRateLimit,
+  createRateLimitHeaders,
 } from '@axiomnode-lab/guard/rate-limit';
 
 const store = new MemoryRateLimitStore();
@@ -115,12 +117,16 @@ const result = await checkRateLimit(`ip:${clientIp}`, {
   store,
 });
 
+const headers = createRateLimitHeaders(result, {
+  policyName: 'api',
+});
+
 if (!result.allowed) {
-  // Return 429; result.retryAfterSeconds tells you when this window resets.
+  // Return 429 and include the generated Retry-After/RateLimit fields.
 }
 ```
 
-The memory store is single-process. Shared deployments can use the Redis adapters. Rate limiting is not authentication and should not be the only control against abusive traffic.
+The helper can emit the current IETF draft `RateLimit-Policy`/`RateLimit` fields together with widely deployed compatibility fields. The draft is not treated as a finalized RFC. The memory store is single-process; shared deployments can use Redis adapters.
 
 ## Security-header presets
 
@@ -183,7 +189,25 @@ const target = await assertSafeResolvedUrl(userInput, {
 });
 ```
 
-This blocks common localhost/private/link-local/reserved targets at validation time. It does not eliminate DNS rebinding or time-of-check/time-of-use risk. High-risk fetchers still need outbound network policy.
+This blocks common localhost/private/link-local/reserved targets at validation time. It does not eliminate DNS rebinding or time-of-check/time-of-use risk.
+
+## Guarded outbound fetches
+
+`safeFetch()` turns the URL checks into a practical outbound-request primitive. It validates the initial target and every followed redirect, limits redirect depth, applies a total timeout, strips sensitive credentials on cross-origin redirects, and refuses transport-header overrides and unsafe body replay.
+
+```ts
+import { safeFetch } from '@axiomnode-lab/guard/fetch';
+
+const response = await safeFetch(userSuppliedUrl, {
+  protocols: ['https:'],
+  allowedHosts: ['api.example.com'],
+  maxRedirects: 2,
+  timeoutMs: 5_000,
+  headers: { accept: 'application/json' },
+});
+```
+
+The underlying Fetch implementation can still resolve DNS again when opening the connection, so this is **not** a complete DNS-rebinding/TOCTOU boundary. High-risk fetchers still need outbound network controls. See [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md).
 
 ## Scanner: text, JSON and SARIF
 
@@ -191,9 +215,10 @@ This blocks common localhost/private/link-local/reserved targets at validation t
 axiomguard scan .
 axiomguard scan . --json
 axiomguard scan . --sarif --output axiomguard.sarif
+axiomguard scan . --write-baseline .axiomguard-baseline.json
 ```
 
-The scanner reports rule, file and line but never the matched credential value. `--no-fail` is available for audit-only rollouts.
+The scanner reports rule, file, line and a non-secret fingerprint but never the matched credential value. Config files and reviewed baselines allow teams to roll it out without permanently hiding moved/new findings. See [docs/SCANNER.md](docs/SCANNER.md).
 
 Programmatic use:
 
@@ -209,7 +234,7 @@ const sarif = findingsToSarif(findings);
 ```yaml
 - uses: actions/checkout@v6
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@v0.3.0
+  uses: AxiomNode-lab/AxiomGuard@v0.5.0
   with:
     path: .
     fail-on-findings: 'true'
@@ -227,7 +252,7 @@ docker run --rm \
 
 ## Qualification and delivery
 
-Every pull request qualifies Node.js 20, 22 and 24 with type checking, regression tests, Node 24 coverage, package dry-run and a self scan. CI also runs the repository's composite GitHub Action against itself and validates its SARIF output.
+Every pull request qualifies Node.js 20, 22 and 24 with type checking, regression tests, Node 24 coverage, package dry-run, published-subpath import smoke tests and a self scan. CI also runs the repository's composite GitHub Action against itself and validates its SARIF output.
 
 Delivery paths:
 
@@ -241,11 +266,13 @@ GitHub Release
 └── npmjs publish (only when explicitly enabled/configured)
 ```
 
+The GitHub Packages workflow can also be started manually for diagnostics/retry and reads the exact version back after publishing before it reports success.
+
 ## What AxiomGuard does not replace
 
 - a WAF, secrets manager, identity provider or authorization framework
 - Argon2/scrypt/bcrypt password hashing
-- egress firewalling or cloud metadata protection
+- egress firewalling, cloud metadata protection, or destination-pinned networking
 - a dedicated distributed abuse-prevention platform
 - a complete SAST or secrets-scanning platform
 - a security review of the application using it
@@ -265,7 +292,7 @@ npm pack --dry-run
 npm run scan:self
 ```
 
-Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
+Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), [docs/SCANNER.md](docs/SCANNER.md), [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
 
 ## Contributing
 
