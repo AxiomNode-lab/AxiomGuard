@@ -1,12 +1,22 @@
 name: Publish container
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - package.json
+      - package-lock.json
+      - Dockerfile
+      - .github/workflows/publish-container.yml
   release:
     types: [published]
 
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
 
 jobs:
   publish:
@@ -24,9 +34,11 @@ jobs:
         with:
           images: ghcr.io/axiomnode-lab/axiomguard
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=raw,value=edge,enable=${{ github.event_name == 'push' }}
+            type=sha,enable=${{ github.event_name == 'push' }}
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
       - uses: docker/build-push-action@v6
         with:
           context: .

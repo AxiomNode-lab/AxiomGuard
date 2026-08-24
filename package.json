@@ -1,14 +1,47 @@
 {
   "name": "@axiomnode-lab/guard",
   "version": "0.1.0",
-  "description": "Security-first TypeScript toolkit for secret redaction, environment validation, webhook verification, safe URLs, paths, tokens, and repository scanning.",
+  "description": "A dependency-light security SDK for Node.js: secret-safe logging, API keys, webhook replay protection, SSRF guardrails, secure headers, env validation, safe paths, and repository scanning.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./api-keys": {
+      "types": "./dist/api-keys.d.ts",
+      "import": "./dist/api-keys.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto.d.ts",
+      "import": "./dist/crypto.js"
+    },
+    "./env": {
+      "types": "./dist/env.d.ts",
+      "import": "./dist/env.js"
+    },
+    "./filesystem": {
+      "types": "./dist/filesystem.d.ts",
+      "import": "./dist/filesystem.js"
+    },
+    "./headers": {
+      "types": "./dist/headers.d.ts",
+      "import": "./dist/headers.js"
+    },
+    "./logging": {
+      "types": "./dist/logging.d.ts",
+      "import": "./dist/logging.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "import": "./dist/webhooks.js"
     }
   },
   "bin": {
@@ -46,8 +79,10 @@
     "application-security",
     "web-security",
     "secret-redaction",
+    "api-keys",
     "webhooks",
     "ssrf",
+    "csp",
     "developer-tools"
   ],
   "author": "AxiomNode Lab contributors",

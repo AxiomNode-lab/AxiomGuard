@@ -1,6 +1,13 @@
 name: Publish npm package
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - src/**
+      - .github/workflows/publish-package.yml
   release:
     types: [published]
 
@@ -20,15 +27,24 @@ jobs:
           scope: '@axiomnode-lab'
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
-      - name: Ensure release tag matches package version
+      - name: Check whether this version already exists
+        id: version
         shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          test "${GITHUB_REF_NAME}" = "v${VERSION}" || {
-            echo "Release tag ${GITHUB_REF_NAME} must equal v${VERSION}" >&2
-            exit 1
-          }
-      - run: npm publish
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Package ${VERSION} already exists; skipping publish."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to GitHub Packages
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,6 +7,35 @@ export {
 } from './crypto.js';
 
 export {
+  createApiKey,
+  hashApiKey,
+  maskApiKey,
+  verifyApiKey,
+  type CreateApiKeyOptions,
+  type CreatedApiKey,
+} from './api-keys.js';
+
+export {
+  MemoryReplayStore,
+  createWebhookReplayKey,
+  verifyFreshHmacWebhook,
+  type FreshWebhookFailureReason,
+  type FreshWebhookResult,
+  type ReplayStore,
+  type VerifyFreshHmacWebhookInput,
+  type VerifyFreshHmacWebhookOptions,
+} from './webhooks.js';
+
+export {
+  buildContentSecurityPolicy,
+  createSecurityHeaders,
+  type ContentSecurityPolicyDirectives,
+  type ContentSecurityPolicyValue,
+  type HstsOptions,
+  type SecurityHeadersOptions,
+} from './headers.js';
+
+export {
   requireEnv,
   validateEnv,
   type EnvRule,
