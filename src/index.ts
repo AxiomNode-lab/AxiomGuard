@@ -7,5 +7,9 @@ export { createCorsHeaders, type CorsOptions, type CorsOriginMatcher } from './c
 export { createCsrfToken, verifyCsrfToken, type CreateCsrfTokenOptions, type VerifyCsrfTokenOptions } from './csrf.js';
 export { requireEnv, validateEnv, type EnvRule, type EnvSchema, type EnvType, type EnvValidationResult } from './env.js';
 export { maskPII, redactSecrets, type MaskPIIOptions, type RedactSecretsOptions } from './logging.js';
+export { getSecurityHeaderPreset, createPresetSecurityHeaders, type SecurityPresetName } from './presets.js';
+export { MemoryRateLimitStore, checkRateLimit, type RateLimitOptions, type RateLimitResult, type RateLimitStore, type RateLimitStoreState } from './rate-limit.js';
+export { findingsToSarif, scanSecrets, type SecretFinding, type SecretScanOptions } from './scanner.js';
 export { assertSafeResolvedUrl, assertSafeUrl, isPrivateIPAddress, validateRedirect, type SafeUrlOptions } from './web.js';
 export { safePath, sanitizeFilename } from './filesystem.js';
+export { createExpressSecurityMiddleware, createFastifySecurityHook, createHonoSecurityMiddleware, createIORedisRateLimitStore, createIORedisReplayStore, createNodeRedisRateLimitStore, createNodeRedisReplayStore, type SecurityAdapterOptions } from './adapters/index.js';
