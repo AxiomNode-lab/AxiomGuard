@@ -18,7 +18,7 @@ export function adapterCorsHeaders(origin: string | undefined, options: Security
 }
 
 export function normalizeHeaderValue(value: string | readonly string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+  return typeof value === 'string' ? value : value?.[0];
 }
 
 export function shouldHandlePreflight(method: string | undefined, corsHeaders: Record<string, string> | null, options: SecurityAdapterOptions): boolean {
