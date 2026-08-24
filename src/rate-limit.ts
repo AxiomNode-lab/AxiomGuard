@@ -19,6 +19,20 @@ export interface RateLimitResult extends RateLimitStoreState {
   limit: number;
   remaining: number;
   retryAfterSeconds: number;
+  windowMs: number;
+}
+
+export interface RateLimitHeaderOptions {
+  /** Timestamp used to calculate reset delay. Defaults to Date.now(). */
+  now?: number;
+  /** Stable policy identifier used in current IETF draft fields. Default: "default". */
+  policyName?: string;
+  /** Emit RateLimit-Policy and RateLimit draft fields. Default: true. */
+  includeDraftFields?: boolean;
+  /** Emit widely deployed RateLimit-Limit/Remaining/Reset compatibility fields. Default: true. */
+  includeLegacyFields?: boolean;
+  /** Emit Retry-After only when the request is blocked. Default: true. */
+  includeRetryAfter?: boolean;
 }
 
 export class MemoryRateLimitStore implements RateLimitStore {
@@ -56,5 +70,47 @@ export async function checkRateLimit(key: string, options: RateLimitOptions): Pr
     limit: options.limit,
     remaining: Math.max(options.limit - state.count, 0),
     retryAfterSeconds: allowed ? 0 : Math.max(1, Math.ceil((state.resetAt - now) / 1000)),
+    windowMs: options.windowMs,
   };
+}
+
+/**
+ * Convert a RateLimitResult into response headers without exposing the key
+ * used to partition the limiter. Current IETF RateLimit fields are still a
+ * draft, so compatibility fields can be emitted alongside them.
+ */
+export function createRateLimitHeaders(result: RateLimitResult, options: RateLimitHeaderOptions = {}): Record<string, string> {
+  if (!Number.isInteger(result.limit) || result.limit < 1) throw new Error('rate-limit result has an invalid limit');
+  if (!Number.isInteger(result.remaining) || result.remaining < 0) throw new Error('rate-limit result has an invalid remaining count');
+  if (!Number.isInteger(result.windowMs) || result.windowMs < 1) throw new Error('rate-limit result has an invalid windowMs');
+  if (!Number.isFinite(result.resetAt)) throw new Error('rate-limit result has an invalid resetAt');
+
+  const now = options.now ?? Date.now();
+  if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
+
+  const policyName = options.policyName ?? 'default';
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(policyName)) {
+    throw new Error('policyName must contain only letters, numbers, dot, underscore, or hyphen');
+  }
+
+  const resetSeconds = Math.max(0, Math.ceil((result.resetAt - now) / 1000));
+  const windowSeconds = Math.max(1, Math.ceil(result.windowMs / 1000));
+  const headers: Record<string, string> = {};
+
+  if (options.includeDraftFields ?? true) {
+    headers['RateLimit-Policy'] = `"${policyName}";q=${result.limit};w=${windowSeconds}`;
+    headers.RateLimit = `"${policyName}";r=${result.remaining};t=${resetSeconds}`;
+  }
+
+  if (options.includeLegacyFields ?? true) {
+    headers['RateLimit-Limit'] = String(result.limit);
+    headers['RateLimit-Remaining'] = String(result.remaining);
+    headers['RateLimit-Reset'] = String(resetSeconds);
+  }
+
+  if (!result.allowed && (options.includeRetryAfter ?? true)) {
+    headers['Retry-After'] = String(Math.max(1, result.retryAfterSeconds));
+  }
+
+  return headers;
 }
