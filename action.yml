@@ -11,7 +11,19 @@ inputs:
     required: false
     default: .
   fail-on-findings:
-    description: Fail the action when potential secrets are found.
+    description: Fail the action when new potential secrets are found.
+    required: false
+    default: 'true'
+  config:
+    description: Optional repository-relative AxiomGuard config path. Defaults to .axiomguard.json in the scan root when present.
+    required: false
+    default: ''
+  baseline:
+    description: Optional repository-relative baseline path. Defaults to .axiomguard-baseline.json or the config baseline value.
+    required: false
+    default: ''
+  annotations:
+    description: Emit GitHub workflow warning annotations for new findings without exposing matched values.
     required: false
     default: 'true'
 
@@ -39,6 +51,9 @@ runs:
       env:
         AXIOMGUARD_INPUT_PATH: ${{ inputs.path }}
         AXIOMGUARD_FAIL: ${{ inputs.fail-on-findings }}
+        AXIOMGUARD_CONFIG: ${{ inputs.config }}
+        AXIOMGUARD_BASELINE: ${{ inputs.baseline }}
+        AXIOMGUARD_ANNOTATIONS: ${{ inputs.annotations }}
       run: |
         set -euo pipefail
         if [[ "$AXIOMGUARD_INPUT_PATH" = /* ]]; then
@@ -47,8 +62,12 @@ runs:
           TARGET="$GITHUB_WORKSPACE/$AXIOMGUARD_INPUT_PATH"
         fi
         SARIF="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.sarif"
+        ARGS=(scan "$TARGET" --sarif --output "$SARIF")
+        if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$GITHUB_WORKSPACE/$AXIOMGUARD_CONFIG"); fi
+        if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$GITHUB_WORKSPACE/$AXIOMGUARD_BASELINE"); fi
+        if [[ "$AXIOMGUARD_ANNOTATIONS" == "true" ]]; then ARGS+=(--github-annotations); fi
         set +e
-        node "$GITHUB_ACTION_PATH/dist/cli.js" scan "$TARGET" --sarif --output "$SARIF"
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${ARGS[@]}"
         STATUS=$?
         set -e
         echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"
@@ -58,6 +77,6 @@ runs:
           exit 2
         fi
         if [[ "$STATUS" -eq 1 && "$AXIOMGUARD_FAIL" == "true" ]]; then
-          echo "AxiomGuard found one or more potential secrets." >&2
+          echo "AxiomGuard found one or more new potential secrets." >&2
           exit 1
         fi
