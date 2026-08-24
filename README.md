@@ -2,40 +2,48 @@
   <img src="docs/axiomguard-demo.svg" alt="AxiomGuard terminal demo" width="860" />
 
   <h1>AxiomGuard</h1>
-  <p><strong>Practical security primitives for Node.js and TypeScript services.</strong></p>
-  <p>Zero runtime dependencies. Small modules. Explicit failure modes.</p>
+  <p><strong>Security building blocks for Node.js and TypeScript services.</strong></p>
+  <p>Zero runtime dependencies · modular imports · explicit failure modes</p>
 
   [![CI](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml)
   [![GitHub package](https://img.shields.io/badge/GitHub%20Packages-%40axiomnode--lab%2Fguard-181717?logo=github)](https://github.com/orgs/AxiomNode-lab/packages)
-  [![Container](https://img.shields.io/badge/GHCR-axiomguard-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/AxiomNode-lab/packages)
-  [![Node](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![GHCR](https://img.shields.io/badge/GHCR-axiomguard-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/AxiomNode-lab/packages)
+  [![Node](https://img.shields.io/badge/Node.js-20%20%7C%2022%20%7C%2024-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 </div>
 
-AxiomGuard exists for the security work that keeps getting rewritten in every backend: validating webhook signatures, stopping simple replay attacks, generating API keys, redacting credentials before they reach logs, checking outbound URLs before a fetch, keeping user paths inside an allowed directory, and setting defensive HTTP headers without pulling in a large framework.
+AxiomGuard collects the small security controls that backend projects tend to rewrite over and over: API keys, webhook signatures, replay protection, secure cookies, CSRF tokens, CORS decisions, defensive headers, URL/SSRF checks, environment validation, log redaction, path safety and repository secret scanning.
 
-The project stays intentionally small. It is a library and CLI, not a WAF, identity provider, secrets manager, antivirus product, or substitute for network policy and security review.
+It is intentionally not a framework. The package stays small enough to audit, uses Node's standard library, and keeps the boundaries of each helper visible.
 
-## What you get
+## Why this exists
 
-| Module | What it handles |
+Dedicated projects such as Helmet, Envalid and provider SDKs are excellent when you need their complete feature set. AxiomGuard targets a different use case: services that want a compact, framework-neutral set of security primitives without installing a stack of unrelated runtime dependencies.
+
+The 0.2 line was shaped by a review of mature Node tooling plus GitHub, Stripe and OWASP guidance. The resulting gap analysis is kept in [RESEARCH.md](RESEARCH.md) instead of being hidden in release notes.
+
+## Modules
+
+| Import | Purpose |
 | --- | --- |
-| API keys | Generate opaque keys, store one-way digests, verify presented keys, safe display masking |
-| Webhooks | HMAC verification, timestamp freshness windows, replay protection interface |
-| Web security | SSRF-oriented URL checks, DNS resolution checks, redirect allowlists, private IP detection |
-| HTTP headers | CSP construction, header-injection checks, HSTS and conservative security headers |
-| Logging | Recursive secret redaction and PII masking without mutating the source object |
-| Environment | Typed environment validation for strings, integers, booleans, URLs and required values |
-| Crypto | Secure random tokens and timing-safe comparison helpers |
-| Filesystem | Path traversal prevention and filename sanitization |
-| CLI | Repository secret scanning that reports locations without printing the matched secret |
+| `@axiomnode-lab/guard/api-keys` | Generate high-entropy API keys, one-way digests, verification and masking |
+| `@axiomnode-lab/guard/webhooks` | Generic HMAC, GitHub SHA-256, Stripe-style signed timestamps and replay stores |
+| `@axiomnode-lab/guard/headers` | CSP, nonces, report-only mode, HSTS, cross-origin and legacy hardening headers |
+| `@axiomnode-lab/guard/cookies` | Secure cookie serialization and `__Host-` / `__Secure-` invariants |
+| `@axiomnode-lab/guard/cors` | Framework-neutral origin policy and preflight headers |
+| `@axiomnode-lab/guard/csrf` | Signed, expiring, optionally session-bound CSRF tokens |
+| `@axiomnode-lab/guard/web` | SSRF-oriented URL checks, DNS resolution and redirect allowlists |
+| `@axiomnode-lab/guard/logging` | Key-, pattern- and path-based secret redaction plus PII masking |
+| `@axiomnode-lab/guard/env` | Typed environment parsing, defaults, ranges and allowlists |
+| `@axiomnode-lab/guard/filesystem` | Traversal-safe paths and filename sanitization |
+| `@axiomnode-lab/guard/crypto` | Secure random tokens and timing-safe comparisons |
+| `axiomguard` CLI | Conservative repository secret scanner |
 
-There are **no runtime npm dependencies**. AxiomGuard uses Node's standard library and exposes subpath imports so a service can import only the part it needs.
+There are **no runtime npm dependencies**.
 
 ## Install
 
-GitHub Packages registry configuration:
+GitHub Packages configuration:
 
 ```ini
 # ~/.npmrc
@@ -47,61 +55,31 @@ GitHub Packages registry configuration:
 npm install @axiomnode-lab/guard
 ```
 
-Or work directly from the repository:
-
-```bash
-git clone https://github.com/AxiomNode-lab/AxiomGuard.git
-cd AxiomGuard
-npm ci
-npm test
-```
-
-## Package layout
-
-Use the root export when convenience matters:
+Use the root package for convenience:
 
 ```ts
 import {
   createApiKey,
+  createSecurityHeaders,
   redactSecrets,
-  verifyFreshHmacWebhook,
-  assertSafeResolvedUrl,
+  verifyGitHubWebhook,
 } from '@axiomnode-lab/guard';
 ```
 
-Or import one module directly:
+Or import only the module you need:
+
+```ts
+import { verifyStripeWebhook } from '@axiomnode-lab/guard/webhooks';
+import { serializeCookie } from '@axiomnode-lab/guard/cookies';
+import { createCorsHeaders } from '@axiomnode-lab/guard/cors';
+```
+
+## API keys
+
+Generate the credential once and store only its digest.
 
 ```ts
 import { createApiKey, verifyApiKey } from '@axiomnode-lab/guard/api-keys';
-import { verifyFreshHmacWebhook } from '@axiomnode-lab/guard/webhooks';
-import { createSecurityHeaders } from '@axiomnode-lab/guard/headers';
-import { assertSafeResolvedUrl } from '@axiomnode-lab/guard/web';
-```
-
-Available subpaths:
-
-```text
-@axiomnode-lab/guard
-├── /api-keys
-├── /crypto
-├── /env
-├── /filesystem
-├── /headers
-├── /logging
-├── /web
-└── /webhooks
-```
-
-## API keys without storing plaintext credentials
-
-Generate an opaque credential once, return the token to the caller, and store only the digest and identifier.
-
-```ts
-import {
-  createApiKey,
-  maskApiKey,
-  verifyApiKey,
-} from '@axiomnode-lab/guard/api-keys';
 
 const created = createApiKey({ prefix: 'svc' });
 
@@ -111,48 +89,151 @@ await db.apiKeys.insert({
   fingerprint: created.fingerprint,
 });
 
-// Return this once. Do not log it.
-console.log(created.token);
-
+// Return created.token once. Do not log it.
 const accepted = verifyApiKey(presentedToken, created.digest);
-console.log(maskApiKey(presentedToken)); // svc_...Ab9x
 ```
 
-The digest uses SHA-256 because generated API keys have high random entropy. It is deliberately **not** presented as a password hashing function.
+SHA-256 is appropriate here because the generated token has high random entropy. This helper is not a password-hashing API.
 
-## Webhook verification + replay protection
+## Provider-aware webhooks
 
-Signature verification by itself does not stop a previously valid request from being replayed. AxiomGuard can combine the HMAC check with a provider timestamp and an atomic replay claim.
+### GitHub
+
+```ts
+import { verifyGitHubWebhook } from '@axiomnode-lab/guard/webhooks';
+
+const valid = verifyGitHubWebhook(
+  rawBody,
+  req.headers['x-hub-signature-256'],
+  process.env.WEBHOOK_SECRET!,
+);
+```
+
+The raw payload is verified with HMAC-SHA256 and the `sha256=` signature format.
+
+### Stripe-style signed timestamps
 
 ```ts
 import {
   MemoryReplayStore,
-  verifyFreshHmacWebhook,
+  verifyStripeWebhook,
 } from '@axiomnode-lab/guard/webhooks';
 
-const replayStore = new MemoryReplayStore();
-
-const result = await verifyFreshHmacWebhook(
+const result = await verifyStripeWebhook(
+  rawBody,
+  req.headers['stripe-signature'],
+  process.env.STRIPE_WEBHOOK_SECRET!,
   {
-    payload: rawBody,
-    signature: req.headers['x-signature'],
-    secret: process.env.WEBHOOK_SECRET!,
-    timestamp: req.headers['x-timestamp']!,
-  },
-  {
-    replayStore,
     toleranceSeconds: 300,
+    replayStore: new MemoryReplayStore(),
   },
 );
-
-if (!result.ok) {
-  throw new Error(`Webhook rejected: ${result.reason}`);
-}
 ```
 
-`MemoryReplayStore` is for a single Node process. Multi-instance services should implement the small `ReplayStore` contract using Redis, a transactional database, or another store that can atomically claim a key.
+The timestamp is part of the signed message, so freshness cannot be changed without invalidating the signature. A shared deployment should replace `MemoryReplayStore` with a Redis/database implementation of the small `ReplayStore` interface.
 
-## Outbound URL / SSRF guardrails
+## Secure cookies
+
+```ts
+import { serializeCookie } from '@axiomnode-lab/guard/cookies';
+
+const cookie = serializeCookie('__Host-session', sessionToken, {
+  sameSite: 'Lax',
+  maxAge: 3600,
+});
+```
+
+Defaults are `Secure`, `HttpOnly`, `Path=/`, and `SameSite=Lax`. The serializer rejects invalid combinations such as `SameSite=None` without `Secure`, a `Domain` on `__Host-` cookies, or partitioned cookies without `Secure`.
+
+## CORS policy
+
+```ts
+import { createCorsHeaders } from '@axiomnode-lab/guard/cors';
+
+const cors = createCorsHeaders(req.headers.origin, {
+  origins: ['https://app.example.com'],
+  allowCredentials: true,
+  allowMethods: ['GET', 'POST'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 600,
+});
+```
+
+A wildcard origin combined with credentials is rejected rather than silently producing an unsafe policy.
+
+## CSRF tokens
+
+```ts
+import { createCsrfToken, verifyCsrfToken } from '@axiomnode-lab/guard/csrf';
+
+const token = createCsrfToken(process.env.CSRF_SECRET!, {
+  sessionId: session.id,
+});
+
+const valid = verifyCsrfToken(token, process.env.CSRF_SECRET!, {
+  sessionId: session.id,
+  maxAgeSeconds: 7200,
+});
+```
+
+Tokens are HMAC-signed, versioned, expiring and can be bound to a session identifier without placing the session identifier itself in the token.
+
+## Security headers and CSP
+
+```ts
+import {
+  createCspNonce,
+  createSecurityHeaders,
+} from '@axiomnode-lab/guard/headers';
+
+const nonce = createCspNonce();
+
+const headers = createSecurityHeaders({
+  contentSecurityPolicy: {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", `'nonce-${nonce}'`],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+  },
+  hsts: { includeSubDomains: true },
+});
+```
+
+The helper also supports report-only CSP, COOP, CORP, optional COEP, Origin-Agent-Cluster, Permissions-Policy, DNS prefetch control and legacy defensive headers. CSP remains application-specific; AxiomGuard does not invent a policy that may break your site.
+
+## Environment validation
+
+```ts
+import { requireEnv } from '@axiomnode-lab/guard/env';
+
+const env = requireEnv({
+  PORT: { type: 'port', default: 3000 },
+  API_URL: 'url',
+  RATE: { type: 'number', min: 0, max: 1 },
+  ADMIN_EMAIL: 'email',
+  FLAGS: { type: 'json', required: false, default: {} },
+  MODE: { type: 'string', allowed: ['development', 'staging', 'production'] },
+});
+```
+
+Validated output is returned as a frozen object. Missing or malformed required values fail early.
+
+## Secret-safe logging
+
+```ts
+import { redactSecrets } from '@axiomnode-lab/guard/logging';
+
+const safeEvent = redactSecrets(event, {
+  paths: [
+    'req.headers.x-api-key',
+    'users.*.profile',
+  ],
+});
+```
+
+Redaction combines common secret-key names, high-confidence credential patterns, explicit paths and single-segment wildcards. It never mutates the original value.
+
+## SSRF-oriented URL checks
 
 ```ts
 import { assertSafeResolvedUrl } from '@axiomnode-lab/guard/web';
@@ -161,94 +242,18 @@ const target = await assertSafeResolvedUrl(userInput, {
   protocols: ['https:'],
   allowedHosts: ['api.example.com'],
 });
-
-const response = await fetch(target);
 ```
 
-The resolver blocks common private, loopback and link-local targets at validation time. That is useful application-side defense, but it does not replace egress firewall rules and it cannot eliminate every DNS rebinding or time-of-check/time-of-use problem.
+The URL layer rejects credentials, localhost, blocked literal addresses and resolved private/link-local/multicast/reserved addresses. Prefer explicit host allowlists when possible. High-risk systems still need outbound network policy because application validation cannot eliminate DNS rebinding and TOCTOU risk by itself.
 
-For high-risk fetchers, apply both application validation and network-level outbound restrictions.
-
-## Security headers and CSP
-
-AxiomGuard does not guess an application CSP. You provide the policy; the builder validates directive names and rejects obvious header injection.
-
-```ts
-import { createSecurityHeaders } from '@axiomnode-lab/guard/headers';
-
-const headers = createSecurityHeaders({
-  contentSecurityPolicy: {
-    'default-src': "'self'",
-    'object-src': "'none'",
-    'base-uri': "'self'",
-    'script-src': ["'self'", 'https://cdn.example.com'],
-  },
-  hsts: {
-    includeSubDomains: true,
-  },
-});
-```
-
-The default set includes `X-Content-Type-Options`, a strict referrer policy, frame protection and a conservative permissions policy. HSTS and CSP are opt-in because they depend on deployment and application behavior.
-
-## Secret-safe logging
-
-```ts
-import { maskPII, redactSecrets } from '@axiomnode-lab/guard/logging';
-
-const event = redactSecrets({
-  user: 'demo',
-  authorization: 'Bearer very-sensitive-value',
-  nested: {
-    apiKey: 'secret-value',
-  },
-});
-
-console.log(event);
-console.log(maskPII('user@example.com connected from 192.168.10.12'));
-```
-
-Redaction is a last line of defense, not permission to log arbitrary request bodies. Prefer not collecting sensitive data in the first place.
-
-## Typed environment validation
-
-```ts
-import { requireEnv } from '@axiomnode-lab/guard/env';
-
-const env = requireEnv({
-  API_URL: 'url',
-  PORT: 'integer',
-  ENABLED: 'boolean',
-  JWT_SECRET: { type: 'string', minLength: 32 },
-});
-```
-
-Invalid or missing required values fail early instead of surfacing later as ambiguous runtime errors.
-
-## Safe paths and filenames
-
-```ts
-import { safePath, sanitizeFilename } from '@axiomnode-lab/guard/filesystem';
-
-const destination = safePath('/srv/app/uploads', userSuppliedPath);
-const filename = sanitizeFilename(originalFilename);
-```
-
-`safePath()` resolves the candidate and verifies that it remains under the configured base directory instead of relying on a string-prefix check.
-
-## Repository secret scanner
-
-The CLI is intentionally conservative: it reports the rule, file and line number, but does not print the matched credential.
+## Repository scanner
 
 ```bash
 npx axiomguard scan .
-```
-
-JSON output:
-
-```bash
 npx axiomguard scan . --json
 ```
+
+The scanner reports rule, file and line only. It intentionally does not echo a detected credential value.
 
 Container usage:
 
@@ -258,75 +263,60 @@ docker run --rm \
   ghcr.io/axiomnode-lab/axiomguard:edge scan /workspace
 ```
 
-Exit codes:
+Exit codes are `0` for no finding, `1` for potential findings, and `2` for CLI/runtime errors.
 
-- `0` — no high-confidence finding
-- `1` — one or more potential secrets found
-- `2` — CLI usage or runtime failure
+## Qualification
 
-## CI and package delivery
-
-Every pull request runs the same basic qualification on Node.js 20 and 22:
+Pull requests are tested on Node.js 20, 22 and 24:
 
 ```text
 npm ci
   ↓
 typecheck
   ↓
-test suite
+unit/regression tests
+  ↓
+coverage run on Node 24
   ↓
 npm pack --dry-run
   ↓
 AxiomGuard self-scan
 ```
 
-Package delivery is automated:
+The npm package and GHCR image are built from `main`. The package workflow checks whether the version already exists before publishing; container releases include provenance and SBOM metadata.
 
-```text
-main
-├── @axiomnode-lab/guard → GitHub npm Packages
-└── ghcr.io/axiomnode-lab/axiomguard:edge → GHCR
+## What AxiomGuard does not replace
 
-GitHub Release vX.Y.Z
-├── npm package version check
-└── GHCR semver + latest tags, provenance and SBOM
-```
+- Helmet when you want a complete Express-focused header middleware stack.
+- A secrets manager or key-management service.
+- Argon2/scrypt/bcrypt password hashing libraries.
+- A distributed rate limiter or authorization framework.
+- Egress firewalling and cloud metadata protections.
+- A full SAST/secrets-scanning platform.
+- A security review of your application.
 
-The npm workflow first checks whether the current version already exists. A normal documentation or source push will not continuously attempt to overwrite an immutable published version.
-
-Both registries use the repository-scoped `GITHUB_TOKEN`; the repository does not need a long-lived package token.
-
-## Project boundaries
-
-AxiomGuard tries to make small security controls predictable, but the limits matter:
-
-- URL checks do not replace egress network controls.
-- Replay protection needs a shared atomic store when multiple processes serve traffic.
-- In-memory state disappears on restart.
-- Redaction rules cannot guarantee that arbitrary logs are safe.
-- Pattern-based secret scanners always have both false positives and false negatives.
-- Security headers can break an application if their policy does not match the deployment.
-- API-key hashing assumes AxiomGuard-generated, high-entropy random credentials; passwords need a dedicated password hashing scheme.
-
-These boundaries are documented because a security helper that hides its assumptions is harder to use safely.
+Keeping these boundaries explicit is part of the project design.
 
 ## Development
 
 ```bash
+git clone https://github.com/AxiomNode-lab/AxiomGuard.git
+cd AxiomGuard
 npm ci
 npm run typecheck
 npm test
-npm run scan:self
+npm run test:coverage
 npm pack --dry-run
+npm run scan:self
 ```
 
-For the module map and shorter examples, see [docs/API.md](docs/API.md).
+Read [RESEARCH.md](RESEARCH.md) for the competitive gap analysis and [SECURITY.md](SECURITY.md) for vulnerability reporting and security assumptions.
 
 ## Contributing
 
-Focused bug reports and pull requests are welcome. Security-sensitive changes should include both positive and negative tests so the expected boundary is visible in code.
+Focused changes are welcome. New security-sensitive behavior should include positive tests, negative tests and a written failure boundary.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 

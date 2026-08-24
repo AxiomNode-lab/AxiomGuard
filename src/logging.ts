@@ -1,15 +1,5 @@
 const DEFAULT_SECRET_KEYS = [
-  'password',
-  'passwd',
-  'secret',
-  'token',
-  'api_key',
-  'apikey',
-  'authorization',
-  'cookie',
-  'set-cookie',
-  'private_key',
-  'client_secret',
+  'password', 'passwd', 'secret', 'token', 'api_key', 'apikey', 'authorization', 'cookie', 'set-cookie', 'private_key', 'client_secret',
 ];
 
 const SECRET_PATTERNS: RegExp[] = [
@@ -28,25 +18,33 @@ function isSecretKey(key: string, extraKeys: readonly string[]): boolean {
 
 function redactString(value: string, replacement: string): string {
   let output = value;
-  for (const pattern of SECRET_PATTERNS) {
-    output = output.replace(pattern, replacement);
-  }
+  for (const pattern of SECRET_PATTERNS) output = output.replace(pattern, replacement);
   return output;
+}
+
+function pathMatches(path: readonly string[], pattern: string): boolean {
+  const expected = pattern.split('.').filter(Boolean);
+  if (expected.length !== path.length) return false;
+  return expected.every((segment, index) => segment === '*' || segment === path[index]);
 }
 
 export interface RedactSecretsOptions {
   replacement?: string;
   extraKeys?: readonly string[];
+  /** Exact dot paths or single-segment wildcards, e.g. `req.headers.authorization` or `users.*.token`. */
+  paths?: readonly string[];
   maxDepth?: number;
 }
 
 export function redactSecrets<T>(input: T, options: RedactSecretsOptions = {}): T {
   const replacement = options.replacement ?? '[REDACTED]';
   const extraKeys = options.extraKeys ?? [];
+  const explicitPaths = options.paths ?? [];
   const maxDepth = options.maxDepth ?? 20;
   const seen = new WeakMap<object, unknown>();
 
-  const visit = (value: unknown, depth: number): unknown => {
+  const visit = (value: unknown, depth: number, currentPath: string[]): unknown => {
+    if (explicitPaths.some((pattern) => pathMatches(currentPath, pattern))) return replacement;
     if (typeof value === 'string') return redactString(value, replacement);
     if (value === null || typeof value !== 'object') return value;
     if (depth > maxDepth) return '[MAX_DEPTH]';
@@ -55,39 +53,30 @@ export function redactSecrets<T>(input: T, options: RedactSecretsOptions = {}): 
     if (Array.isArray(value)) {
       const clone: unknown[] = [];
       seen.set(value, clone);
-      for (const item of value) clone.push(visit(item, depth + 1));
+      for (let index = 0; index < value.length; index += 1) clone.push(visit(value[index], depth + 1, [...currentPath, String(index)]));
       return clone;
     }
 
     const clone: Record<string, unknown> = {};
     seen.set(value, clone);
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      clone[key] = isSecretKey(key, extraKeys) ? replacement : visit(child, depth + 1);
+      const nextPath = [...currentPath, key];
+      clone[key] = isSecretKey(key, extraKeys) || explicitPaths.some((pattern) => pathMatches(nextPath, pattern))
+        ? replacement
+        : visit(child, depth + 1, nextPath);
     }
     return clone;
   };
 
-  return visit(input, 0) as T;
+  return visit(input, 0, []) as T;
 }
 
-export interface MaskPIIOptions {
-  emails?: boolean;
-  phones?: boolean;
-  ipv4?: boolean;
-}
-
+export interface MaskPIIOptions { emails?: boolean; phones?: boolean; ipv4?: boolean; }
 export function maskPII(value: string, options: MaskPIIOptions = {}): string {
-  const emails = options.emails ?? true;
-  const phones = options.phones ?? true;
-  const ipv4 = options.ipv4 ?? true;
+  const emails = options.emails ?? true; const phones = options.phones ?? true; const ipv4 = options.ipv4 ?? true;
   let output = value;
-
-  if (emails) {
-    output = output.replace(/\b([A-Z0-9._%+-])[A-Z0-9._%+-]*@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi, '$1***@$2');
-  }
-  if (ipv4) {
-    output = output.replace(/\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b/g, '$1.$2.*.*');
-  }
+  if (emails) output = output.replace(/\b([A-Z0-9._%+-])[A-Z0-9._%+-]*@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi, '$1***@$2');
+  if (ipv4) output = output.replace(/\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b/g, '$1.$2.*.*');
   if (phones) {
     output = output.replace(/(?<!\d)(\+?\d[\d\s().-]{6,}\d)(?!\d)/g, (match) => {
       const digits = match.replace(/\D/g, '');
@@ -95,6 +84,5 @@ export function maskPII(value: string, options: MaskPIIOptions = {}): string {
       return `${match.slice(0, 2)}***${match.slice(-2)}`;
     });
   }
-
   return output;
 }
