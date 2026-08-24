@@ -24,7 +24,11 @@ export function validateEnv(schema: EnvSchema, source: NodeJS.ProcessEnv | Recor
     let parsed: unknown = raw;
     switch (rule.type ?? 'string') {
       case 'string': parsed = raw; break;
-      case 'url': try { const url = new URL(raw); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); parsed = url.toString(); } catch { errors.push(`${name} must be a valid HTTP(S) URL`); continue; }
+      case 'url': {
+        try { const url = new URL(raw); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); parsed = url.toString(); }
+        catch { errors.push(`${name} must be a valid HTTP(S) URL`); continue; }
+        break;
+      }
       case 'integer': if (!/^-?\d+$/.test(raw) || !Number.isSafeInteger(Number(raw))) { errors.push(`${name} must be a safe integer`); continue; } parsed = Number(raw); break;
       case 'number': parsed = Number(raw); if (!Number.isFinite(parsed)) { errors.push(`${name} must be a finite number`); continue; } break;
       case 'boolean': parsed = parseBoolean(raw); if (parsed === undefined) { errors.push(`${name} must be a boolean`); continue; } break;
