@@ -12,7 +12,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         node: [20, 22, 24]
     steps:
@@ -24,7 +23,22 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - if: matrix.node == 24
-        run: npm run test:coverage
+      - run: npm run test:coverage
+        if: matrix.node == 24
       - run: npm pack --dry-run
       - run: npm run scan:self
+
+  action-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run the repository action against itself
+        id: axiomguard
+        uses: ./
+        with:
+          path: .
+          fail-on-findings: 'true'
+      - name: Validate SARIF output
+        env:
+          SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}
+        run: node -e "const fs=require('node:fs'); const x=JSON.parse(fs.readFileSync(process.env.SARIF_FILE,'utf8')); if(x.version!=='2.1.0'||!Array.isArray(x.runs)) process.exit(1)"

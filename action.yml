@@ -1,0 +1,63 @@
+name: AxiomGuard Secret Scan
+description: Scan a repository for high-confidence secret patterns and produce SARIF without echoing matched values.
+author: AxiomNode Lab
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Repository-relative directory to scan.
+    required: false
+    default: .
+  fail-on-findings:
+    description: Fail the action when potential secrets are found.
+    required: false
+    default: 'true'
+
+outputs:
+  sarif:
+    description: Absolute path to the generated SARIF 2.1.0 file.
+    value: ${{ steps.scan.outputs.sarif }}
+  exit-code:
+    description: AxiomGuard scanner exit code before fail-on-findings handling.
+    value: ${{ steps.scan.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build AxiomGuard action runtime
+      shell: bash
+      run: |
+        set -euo pipefail
+        npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
+        npm --prefix "$GITHUB_ACTION_PATH" run build
+
+    - name: Scan repository
+      id: scan
+      shell: bash
+      env:
+        AXIOMGUARD_INPUT_PATH: ${{ inputs.path }}
+        AXIOMGUARD_FAIL: ${{ inputs.fail-on-findings }}
+      run: |
+        set -euo pipefail
+        if [[ "$AXIOMGUARD_INPUT_PATH" = /* ]]; then
+          TARGET="$AXIOMGUARD_INPUT_PATH"
+        else
+          TARGET="$GITHUB_WORKSPACE/$AXIOMGUARD_INPUT_PATH"
+        fi
+        SARIF="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.sarif"
+        set +e
+        node "$GITHUB_ACTION_PATH/dist/cli.js" scan "$TARGET" --sarif --output "$SARIF"
+        STATUS=$?
+        set -e
+        echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"
+        echo "exit-code=$STATUS" >> "$GITHUB_OUTPUT"
+        if [[ "$STATUS" -eq 2 ]]; then
+          echo "AxiomGuard failed to execute." >&2
+          exit 2
+        fi
+        if [[ "$STATUS" -eq 1 && "$AXIOMGUARD_FAIL" == "true" ]]; then
+          echo "AxiomGuard found one or more potential secrets." >&2
+          exit 1
+        fi

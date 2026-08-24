@@ -2,7 +2,29 @@
 
 All notable changes to this project are documented here.
 
-## [0.2.0] - Unreleased
+## [0.3.0] - Unreleased
+
+### Added
+
+- Express, Fastify and Hono security adapters without framework runtime dependencies.
+- Fixed-window rate-limit primitive with an injectable store contract and in-memory implementation.
+- node-redis and ioredis replay-store adapters using atomic `NX` + `PX` claims.
+- node-redis and ioredis fixed-window rate-limit stores backed by an atomic Lua script.
+- Deployment-conscious `api`, `web`, and `isolated` security-header presets.
+- Reusable scanner library API plus SARIF 2.1.0 output.
+- CLI `--sarif`, `--output`, and `--no-fail` options.
+- Reusable GitHub Action with SARIF and exit-code outputs.
+- Optional npmjs release workflow with OIDC/provenance support.
+- Dependabot configuration, structured issue forms, PR template, adapter docs and release policy.
+
+### Changed
+
+- Scanner implementation moved from the CLI into `@axiomnode-lab/guard/scanner` for programmatic use.
+- Package exports expanded with `/presets`, `/rate-limit`, `/scanner`, and `/adapters/*` entry points.
+- Package version advanced to `0.3.0`.
+- CI now smoke-tests the repository's own GitHub Action in addition to Node.js 20/22/24 qualification.
+
+## [0.2.0]
 
 ### Added
 
@@ -12,23 +34,17 @@ All notable changes to this project are documented here.
 - Framework-neutral CORS policy helper with strict HTTP(S) origin validation, credential/wildcard safety, `Origin: null` fail-closed behavior and opt-in Private Network Access.
 - HMAC-signed, expiring and optionally session-bound CSRF tokens.
 - CSP nonce generation and report-only CSP support.
-- Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy, optional COEP, Origin-Agent-Cluster, DNS prefetch control and additional defensive HTTP headers.
-- Environment types for number, email, port and JSON, plus defaults, numeric ranges and allowed values.
-- Explicit dot-path and single-segment wildcard secret redaction.
+- Cross-origin and additional defensive HTTP headers.
+- Richer environment types, defaults, numeric ranges and allowed values.
+- Explicit dot-path and wildcard secret redaction.
 - Dedicated `/cookies`, `/cors`, and `/csrf` package exports.
-- `RESEARCH.md` documenting the competitive review, security rationale, limitations and deliberate non-goals.
+- `RESEARCH.md` with competitive review, rationale and non-goals.
 - Node.js 24 CI qualification and coverage execution.
-
-### Changed
-
-- Package version advanced to `0.2.0` for a distinct GitHub Packages release.
-- CI and publishing workflows use current `actions/checkout@v6` and `actions/setup-node@v6` JavaScript runtimes.
-- README reorganized around the expanded security SDK and provider-specific examples.
 
 ### Fixed
 
 - Environment URL validation no longer falls through into integer parsing.
-- Strict TypeScript narrowing for optional COEP header configuration.
+- Strict TypeScript narrowing for optional COEP configuration.
 
 ## [0.1.0]
 
@@ -42,11 +58,7 @@ All notable changes to this project are documented here.
 - Redirect origin allowlisting.
 - Safe path and filename utilities.
 - Conservative repository secret scanner CLI.
-- API-key generation, hashing, verification, and safe display masking.
-- Fresh webhook verification with timestamp windows and replay-store abstraction.
-- In-memory replay store for single-process services.
-- CSP builder and framework-neutral security header helpers.
-- Subpath package exports for smaller imports.
-- Automatic first-time GitHub Packages publishing when a new version lands on `main`.
-- GHCR `edge` images from `main`, with semver/release tags reserved for published releases.
-- CI across Node.js 20 and 22.
+- API-key generation, hashing, verification and masking.
+- Fresh webhook verification with replay-store abstraction.
+- CSP builder and framework-neutral security headers.
+- GitHub Packages and GHCR delivery workflows.
