@@ -1,6 +1,6 @@
 export { constantTimeCompare, secureToken, verifyHmacWebhook, type HmacAlgorithm, type VerifyHmacWebhookOptions } from './crypto.js';
 export { createApiKey, hashApiKey, maskApiKey, verifyApiKey, type CreateApiKeyOptions, type CreatedApiKey } from './api-keys.js';
-export { MemoryReplayStore, createWebhookReplayKey, verifyFreshHmacWebhook, verifyGitHubWebhook, verifyStripeWebhook, type FreshWebhookFailureReason, type FreshWebhookResult, type ReplayStore, type VerifyFreshHmacWebhookInput, type VerifyFreshHmacWebhookOptions, type VerifyStripeWebhookOptions } from './webhooks.js';
+export { MemoryReplayStore, createWebhookReplayKey, verifyFreshHmacWebhook, verifyGitHubWebhook, verifyGitHubWebhookDelivery, verifyStripeWebhook, type FreshWebhookFailureReason, type FreshWebhookResult, type GitHubWebhookFailureReason, type GitHubWebhookResult, type ReplayStore, type VerifyFreshHmacWebhookInput, type VerifyFreshHmacWebhookOptions, type VerifyGitHubWebhookDeliveryOptions, type VerifyStripeWebhookOptions } from './webhooks.js';
 export { buildContentSecurityPolicy, createCspNonce, createSecurityHeaders, type ContentSecurityPolicyDirectives, type ContentSecurityPolicyValue, type HstsOptions, type SecurityHeadersOptions } from './headers.js';
 export { serializeCookie, type CookieOptions, type CookiePriority, type SameSite } from './cookies.js';
 export { createCorsHeaders, type CorsOptions, type CorsOriginMatcher } from './cors.js';
