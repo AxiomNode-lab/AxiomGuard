@@ -1,6 +1,7 @@
 name: Publish npmjs package
 
 on:
+  workflow_dispatch:
   release:
     types: [published]
 
@@ -19,10 +20,49 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: Ensure npm supports trusted publishing
+        run: npm install --global npm@11.5.1
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - name: Publish public package with provenance
-        run: npm publish --registry=https://registry.npmjs.org --access public --provenance
+      - run: npm pack --dry-run
+      - name: Verify release tag matches package version
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          test "${{ github.event.release.tag_name }}" = "v${VERSION}" || {
+            echo "::error::Release tag must be v${VERSION}; got ${{ github.event.release.tag_name }}"
+            exit 1
+          }
+      - name: Check whether this version already exists on npmjs
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "@axiomnode-lab/guard@${VERSION} already exists on npmjs; skipping."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish public package with npm Trusted Publishing
+        if: steps.version.outputs.publish == 'true'
+        run: npm publish --registry=https://registry.npmjs.org --access public
+      - name: Verify package version on npmjs
+        if: steps.version.outputs.publish == 'true'
+        shell: bash
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          for ATTEMPT in 1 2 3 4 5; do
+            ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org 2>/dev/null || true)"
+            if [ "$ACTUAL" = "$VERSION" ]; then
+              echo "Verified @axiomnode-lab/guard@${VERSION} on npmjs."
+              exit 0
+            fi
+            sleep $((ATTEMPT * 3))
+          done
+          echo "::error::Published npmjs version ${VERSION} was not readable after retries."
+          exit 1
