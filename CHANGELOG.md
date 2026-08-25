@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-08-25
 
 ### Added
 
@@ -20,6 +20,8 @@ All notable changes to this project are documented here.
 - `RateLimitResult` now includes the configured `windowMs` so response policies can be rendered without duplicating configuration.
 - GitHub Packages publish qualification now includes `npm pack --dry-run` and clearer first-package diagnostics.
 - Package version advanced to `0.5.0` and added the `/fetch` export.
+- npmjs publishing now uses tokenless Trusted Publishing for normal releases, verifies the package version after publish, and fails closed on release-tag/version mismatches.
+- Container and GitHub Packages release paths reject mismatched release tags before publication.
 
 ## [0.4.0]
 
