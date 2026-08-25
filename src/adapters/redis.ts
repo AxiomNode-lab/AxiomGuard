@@ -19,9 +19,10 @@ if current == 1 or ttl < 0 then
 end
 return {current, ttl}`;
 
-function ttlFromExpiry(expiresAt: number): number {
+function ttlFromExpiry(expiresAt: number, now: number): number {
   if (!Number.isFinite(expiresAt)) throw new RangeError('expiresAt must be finite');
-  return Math.max(0, Math.ceil(expiresAt - Date.now()));
+  if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
+  return Math.max(0, Math.ceil(expiresAt - now));
 }
 
 function parseRateState(raw: unknown, now: number): RateLimitStoreState {
@@ -45,8 +46,8 @@ function validateWindow(windowMs: number, now: number): void {
 
 export function createNodeRedisReplayStore(client: NodeRedisLike, prefix = 'axiomguard:replay:'): ReplayStore {
   return {
-    async claim(key: string, expiresAt: number): Promise<boolean> {
-      const ttl = ttlFromExpiry(expiresAt);
+    async claim(key: string, expiresAt: number, now = Date.now()): Promise<boolean> {
+      const ttl = ttlFromExpiry(expiresAt, now);
       if (ttl <= 0) return false;
       return (await client.set(keyWithPrefix(prefix, key), '1', { NX: true, PX: ttl })) === 'OK';
     },
@@ -55,8 +56,8 @@ export function createNodeRedisReplayStore(client: NodeRedisLike, prefix = 'axio
 
 export function createIORedisReplayStore(client: IORedisLike, prefix = 'axiomguard:replay:'): ReplayStore {
   return {
-    async claim(key: string, expiresAt: number): Promise<boolean> {
-      const ttl = ttlFromExpiry(expiresAt);
+    async claim(key: string, expiresAt: number, now = Date.now()): Promise<boolean> {
+      const ttl = ttlFromExpiry(expiresAt, now);
       if (ttl <= 0) return false;
       return (await client.set(keyWithPrefix(prefix, key), '1', 'PX', ttl, 'NX')) === 'OK';
     },
