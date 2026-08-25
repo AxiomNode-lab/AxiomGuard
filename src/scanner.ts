@@ -38,10 +38,15 @@ interface SecretRule {
 const DEFAULT_IGNORE_DIRECTORIES = ['.git', 'node_modules', 'dist', 'build', 'coverage', '.next', '.cache', '.axiomguard'];
 const DEFAULT_MAX_FILE_BYTES = 1_000_000;
 
+// Keep this set deliberately narrow. Each provider-shaped rule should have a
+// stable, documented prefix and enough trailing entropy to avoid turning the
+// scanner into a generic high-noise string detector.
 const RULES: readonly SecretRule[] = [
   { name: 'private-key', description: 'Private key material appears to be committed.', pattern: /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----/ },
   { name: 'github-token', description: 'A GitHub token-shaped credential appears to be committed.', pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/ },
   { name: 'aws-access-key', description: 'An AWS access key identifier appears to be committed.', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
+  { name: 'stripe-live-secret', description: 'A Stripe live-mode secret or restricted API key appears to be committed.', pattern: /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/ },
+  { name: 'slack-token', description: 'A Slack bot, user, or app-level token appears to be committed.', pattern: /\b(?:xoxb|xoxp|xapp)-[A-Za-z0-9-]{20,}\b/ },
   { name: 'sensitive-env-value', description: 'A sensitive environment variable appears to contain a non-placeholder value.', pattern: /^\s*(?:PASSWORD|PASSWD|SECRET|API_KEY|TOKEN|PRIVATE_KEY|CLIENT_SECRET)\s*=\s*(?!$|["']?(?:changeme|example|placeholder|your[_-]?\w+|<[^>]+>)["']?\s*$).{6,}$/i },
 ];
 
