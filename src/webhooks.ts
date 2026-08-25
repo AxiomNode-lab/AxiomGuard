@@ -23,11 +23,12 @@ export class MemoryReplayStore implements ReplayStore {
     const existing = this.entries.get(key);
     if (existing !== undefined && existing > now) return false;
     if (existing !== undefined) this.entries.delete(key);
-    while (this.entries.size >= this.maxEntries) {
-      const oldest = this.entries.keys().next().value as string | undefined;
-      if (oldest === undefined) break;
-      this.entries.delete(oldest);
-    }
+
+    // Replay protection must fail closed at capacity. Evicting a live claim
+    // would make that event replayable again under attacker-controlled
+    // high-cardinality traffic.
+    if (this.entries.size >= this.maxEntries) return false;
+
     this.entries.set(key, expiresAt);
     return true;
   }
