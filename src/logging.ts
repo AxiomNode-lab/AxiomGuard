@@ -6,6 +6,8 @@ const SECRET_PATTERNS: RegExp[] = [
   /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g,
   /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g,
   /\bAKIA[0-9A-Z]{16}\b/g,
+  /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/g,
+  /\b(?:xoxb|xoxp|xapp)-[A-Za-z0-9-]{20,}\b/g,
   /\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b/gi,
   /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/g,
 ];
@@ -41,6 +43,7 @@ export function redactSecrets<T>(input: T, options: RedactSecretsOptions = {}): 
   const extraKeys = options.extraKeys ?? [];
   const explicitPaths = options.paths ?? [];
   const maxDepth = options.maxDepth ?? 20;
+  if (!Number.isInteger(maxDepth) || maxDepth < 0 || maxDepth > 100) throw new RangeError('maxDepth must be an integer between 0 and 100');
   const seen = new WeakMap<object, unknown>();
 
   const visit = (value: unknown, depth: number, currentPath: string[]): unknown => {
