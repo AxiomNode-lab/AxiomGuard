@@ -34,6 +34,32 @@ test('scanner fingerprints findings without putting secret values into fingerpri
   }
 });
 
+test('scanner detects narrow provider prefixes without embedding fixture credentials in source', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'axiomguard-provider-rules-'));
+  try {
+    const stripe = ['sk', 'live', 'A'.repeat(24)].join('_');
+    const slack = ['xoxb', '123456789012345678901234'].join('-');
+    await writeFile(path.join(directory, 'config.txt'), `stripe=${stripe}\nslack=${slack}\n`, 'utf8');
+    const findings = await scanSecrets(directory);
+    assert.deepEqual(findings.map((finding) => finding.rule).sort(), ['slack-token', 'stripe-live-secret']);
+    const serialized = JSON.stringify(findingsToSarif(findings));
+    assert.doesNotMatch(serialized, new RegExp(stripe));
+    assert.doesNotMatch(serialized, new RegExp(slack));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('scanner does not flag public Stripe publishable-key prefixes or short Slack-like text', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'axiomguard-provider-negatives-'));
+  try {
+    await writeFile(path.join(directory, 'docs.txt'), 'pk_live_publicExampleValue12345\nxoxb-short-example\n', 'utf8');
+    assert.deepEqual(await scanSecrets(directory), []);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('baseline suppresses only previously accepted finding fingerprints', async () => {
   const directory = await fixture();
   try {
