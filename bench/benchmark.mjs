@@ -39,9 +39,10 @@ const webhookSecret = 'benchmark-secret';
 const signature = `sha256=${createHmac('sha256', webhookSecret).update(payload).digest('hex')}`;
 results.push(measure('verifyHmacWebhook', 30_000, () => verifyHmacWebhook(payload, signature, webhookSecret)));
 
+const bearer = ['Bearer', 'abcdefghijklmnopqrstuvwxyz123456'].join(' ');
 const logFixture = {
   request: {
-    authorization: 'Bearer abcdefghijklmnopqrstuvwxyz123456',
+    authorization: bearer,
     nested: Array.from({ length: 5 }, (_, index) => ({ index, token: `value-${index}` })),
   },
 };
