@@ -27,6 +27,9 @@ jobs:
         if: matrix.node == 24
       - run: npm run test:package
         if: matrix.node == 24
+      - name: Run informational benchmark
+        if: matrix.node == 24
+        run: npm run benchmark
       - run: npm pack --dry-run
       - run: npm run scan:self
 
@@ -85,12 +88,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Run the repository action against itself
+      - name: Prepare safe workspace path containing spaces
+        shell: bash
+        run: |
+          mkdir -p "tests/action fixture"
+          printf 'safe=true\n' > "tests/action fixture/config.txt"
+      - name: Run the repository action against a path with spaces
         id: axiomguard
         uses: ./
         with:
-          path: .
+          path: 'tests/action fixture'
           fail-on-findings: 'true'
+          annotations: 'true'
       - name: Validate SARIF output
         env:
           SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}
