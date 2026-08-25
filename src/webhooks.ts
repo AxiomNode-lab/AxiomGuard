@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { verifyHmacWebhook, type VerifyHmacWebhookOptions } from './crypto.js';
 
-export interface ReplayStore { claim(key: string, expiresAt: number): boolean | Promise<boolean>; }
+export interface ReplayStore { claim(key: string, expiresAt: number, now?: number): boolean | Promise<boolean>; }
 export class MemoryReplayStore implements ReplayStore {
   private readonly entries = new Map<string, number>();
   private operations = 0;
@@ -14,8 +14,8 @@ export class MemoryReplayStore implements ReplayStore {
     for (const [candidate, expiry] of this.entries) if (expiry <= now) this.entries.delete(candidate);
   }
 
-  claim(key: string, expiresAt: number): boolean {
-    const now = Date.now();
+  claim(key: string, expiresAt: number, now = Date.now()): boolean {
+    if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
     if (!Number.isFinite(expiresAt) || expiresAt <= now) return false;
     this.operations += 1;
     if (this.operations % 256 === 0 || this.entries.size >= this.maxEntries) this.sweepExpired(now);
@@ -51,6 +51,12 @@ export interface VerifyGitHubWebhookDeliveryOptions {
   now?: number;
 }
 
+function resolveNow(now: number | undefined): number {
+  const value = now ?? Date.now();
+  if (!Number.isFinite(value) || value < 0) throw new RangeError('now must be a non-negative finite timestamp');
+  return value;
+}
+
 export function createWebhookReplayKey(signature: string): string { return createHash('sha256').update(signature, 'utf8').digest('hex'); }
 export function verifyGitHubWebhook(payload: string | Buffer, signature: string | undefined | null, secret: string): boolean {
   return verifyHmacWebhook(payload, signature, secret, { algorithm: 'sha256', prefix: 'sha256=' });
@@ -67,10 +73,9 @@ export async function verifyGitHubWebhookDelivery(
   if (!deliveryId || deliveryId.length > 200 || /[\u0000-\u001f\u007f]/.test(deliveryId)) return { ok: false, reason: 'invalid-delivery' };
   const replayTtlSeconds = options.replayTtlSeconds ?? 86_400;
   if (!Number.isInteger(replayTtlSeconds) || replayTtlSeconds < 1 || replayTtlSeconds > 604_800) throw new RangeError('replayTtlSeconds must be an integer between 1 and 604800');
-  const now = options.now ?? Date.now();
-  if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
+  const now = resolveNow(options.now);
   const replayKey = createHash('sha256').update(`github-delivery\0${deliveryId}`, 'utf8').digest('hex');
-  if (!await options.replayStore.claim(replayKey, now + replayTtlSeconds * 1000)) return { ok: false, reason: 'replay' };
+  if (!await options.replayStore.claim(replayKey, now + replayTtlSeconds * 1000, now)) return { ok: false, reason: 'replay' };
   return { ok: true };
 }
 
@@ -80,11 +85,11 @@ export async function verifyFreshHmacWebhook(input: VerifyFreshHmacWebhookInput,
   if (!Number.isFinite(timestamp) || timestamp <= 0) return { ok: false, reason: 'invalid-timestamp' };
   const toleranceSeconds = options.toleranceSeconds ?? 300;
   if (!Number.isFinite(toleranceSeconds) || toleranceSeconds <= 0 || toleranceSeconds > 86_400) throw new RangeError('toleranceSeconds must be >0 and <=86400');
-  const now = options.now ?? Date.now();
+  const now = resolveNow(options.now);
   if (Math.abs(now - timestamp * 1000) > toleranceSeconds * 1000) return { ok: false, reason: 'stale-timestamp' };
   if (options.replayStore) {
     const key = options.replayKey ?? createWebhookReplayKey(input.signature ?? '');
-    if (!await options.replayStore.claim(key, now + toleranceSeconds * 1000)) return { ok: false, reason: 'replay' };
+    if (!await options.replayStore.claim(key, now + toleranceSeconds * 1000, now)) return { ok: false, reason: 'replay' };
   }
   return { ok: true };
 }
@@ -98,7 +103,7 @@ function parseStripeSignature(header: string): { timestamp: number; signatures: 
     if (key === 't' && value && /^\d+$/.test(value)) timestamp = Number(value);
     if (key === 'v1' && value && /^[a-fA-F0-9]{64}$/.test(value)) signatures.push(value.toLowerCase());
   }
-  return timestamp && signatures.length ? { timestamp, signatures } : null;
+  return timestamp && Number.isSafeInteger(timestamp) && signatures.length ? { timestamp, signatures } : null;
 }
 
 export async function verifyStripeWebhook(payload: string | Buffer, signatureHeader: string | undefined | null, secret: string, options: VerifyStripeWebhookOptions = {}): Promise<FreshWebhookResult> {
@@ -117,11 +122,11 @@ export async function verifyStripeWebhook(payload: string | Buffer, signatureHea
   });
   if (!valid) return { ok: false, reason: 'invalid-signature' };
 
-  const now = options.now ?? Date.now();
+  const now = resolveNow(options.now);
   if (Math.abs(now - parsed.timestamp * 1000) > tolerance * 1000) return { ok: false, reason: 'stale-timestamp' };
   if (options.replayStore) {
     const key = createWebhookReplayKey(signatureHeader);
-    if (!await options.replayStore.claim(key, now + tolerance * 1000)) return { ok: false, reason: 'replay' };
+    if (!await options.replayStore.claim(key, now + tolerance * 1000, now)) return { ok: false, reason: 'replay' };
   }
   return { ok: true };
 }
