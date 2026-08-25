@@ -25,13 +25,25 @@ test('IPv6 transition and mapped private addresses cannot bypass SSRF policy', (
   assert.equal(isPrivateIPAddress('2001:0:4136:e378:8000:63bf:3fff:fdd2'), true);
 });
 
-test('MemoryRateLimitStore is bounded under unique attacker-controlled keys', async () => {
+test('MemoryRateLimitStore saturates new identities instead of evicting live state', async () => {
   const store = new MemoryRateLimitStore(2);
-  await checkRateLimit('a', { limit: 1, windowMs: 60_000, store, now: 1000 });
-  await checkRateLimit('b', { limit: 1, windowMs: 60_000, store, now: 1000 });
-  await checkRateLimit('c', { limit: 1, windowMs: 60_000, store, now: 1000 });
+  const a = await checkRateLimit('a', { limit: 1, windowMs: 60_000, store, now: 1000 });
+  const b = await checkRateLimit('b', { limit: 1, windowMs: 60_000, store, now: 1000 });
+  const c = await checkRateLimit('c', { limit: 1, windowMs: 60_000, store, now: 1000 });
   const aAgain = await checkRateLimit('a', { limit: 1, windowMs: 60_000, store, now: 1000 });
-  assert.equal(aAgain.allowed, true, 'oldest entry should have been evicted instead of growing without bound');
+  assert.equal(a.allowed, true);
+  assert.equal(b.allowed, true);
+  assert.equal(c.allowed, false, 'an untracked identity should fail closed at capacity');
+  assert.equal(aAgain.allowed, false, 'live tracked state must not be evicted by high-cardinality traffic');
+});
+
+test('MemoryReplayStore fails closed at capacity without making old claims replayable', () => {
+  const store = new MemoryReplayStore(2);
+  const now = 1000;
+  assert.equal(store.claim('a', 60_000, now), true);
+  assert.equal(store.claim('b', 60_000, now), true);
+  assert.equal(store.claim('c', 60_000, now), false);
+  assert.equal(store.claim('a', 60_000, now), false, 'the original live claim remains protected');
 });
 
 test('environment defaults are parsed and constrained like supplied values', () => {
