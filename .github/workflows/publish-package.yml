@@ -31,6 +31,15 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm pack --dry-run
+      - name: Verify release tag matches package version
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          test "${{ github.event.release.tag_name }}" = "v${VERSION}" || {
+            echo "::error::Release tag must be v${VERSION}; got ${{ github.event.release.tag_name }}"
+            exit 1
+          }
       - name: Check whether this version already exists
         id: version
         shell: bash
