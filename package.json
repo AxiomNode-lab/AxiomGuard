@@ -39,7 +39,6 @@
     "prepack": "npm run build",
     "scan:self": "npm run build && node dist/cli.js scan ."
   },
-  "publishConfig": { "registry": "https://npm.pkg.github.com" },
   "repository": { "type": "git", "url": "git+https://github.com/AxiomNode-lab/AxiomGuard.git" },
   "bugs": { "url": "https://github.com/AxiomNode-lab/AxiomGuard/issues" },
   "homepage": "https://github.com/AxiomNode-lab/AxiomGuard#readme",
