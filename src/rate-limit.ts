@@ -54,20 +54,22 @@ export class MemoryRateLimitStore implements RateLimitStore {
     if (this.operations % 256 === 0 || this.entries.size >= this.maxEntries) this.sweepExpired(now);
 
     const current = this.entries.get(key);
-    if (!current || current.resetAt <= now) {
-      if (current) this.entries.delete(key);
-      while (this.entries.size >= this.maxEntries) {
-        const oldest = this.entries.keys().next().value as string | undefined;
-        if (oldest === undefined) break;
-        this.entries.delete(oldest);
-      }
-      const state = { count: 1, resetAt: now + windowMs };
-      this.entries.set(key, state);
-      return { ...state };
+    if (current && current.resetAt > now) {
+      if (current.count < Number.MAX_SAFE_INTEGER) current.count += 1;
+      return { ...current };
+    }
+    if (current) this.entries.delete(key);
+
+    // Do not silently evict a live identity when the store is saturated: that
+    // would let high-cardinality traffic reset another client's rate-limit
+    // history. Saturate unknown identities instead until tracked windows expire.
+    if (this.entries.size >= this.maxEntries) {
+      return { count: Number.MAX_SAFE_INTEGER, resetAt: now + windowMs };
     }
 
-    if (current.count < Number.MAX_SAFE_INTEGER) current.count += 1;
-    return { ...current };
+    const state = { count: 1, resetAt: now + windowMs };
+    this.entries.set(key, state);
+    return { ...state };
   }
 
   clear(): void {
