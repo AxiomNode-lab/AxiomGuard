@@ -6,6 +6,7 @@ import {
   MemoryReplayStore,
   checkRateLimit,
   isPrivateIPAddress,
+  redactSecrets,
   validateEnv,
   verifyGitHubWebhookDelivery,
   verifyStripeWebhook,
@@ -67,4 +68,12 @@ test('Redis rate-limit adapter fails closed on invalid negative TTL state', asyn
     eval: async () => [1, -1],
   });
   await assert.rejects(store.consume('client', 1000, 1000), /invalid counters/);
+});
+
+test('redaction covers provider-shaped live credentials and validates recursion limits', () => {
+  const stripe = ['sk', 'live', 'A'.repeat(24)].join('_');
+  const slack = ['xoxb', '123456789012345678901234'].join('-');
+  const value = redactSecrets({ message: `stripe=${stripe} slack=${slack}` });
+  assert.equal(value.message, 'stripe=[REDACTED] slack=[REDACTED]');
+  assert.throws(() => redactSecrets({ ok: true }, { maxDepth: -1 }), /maxDepth/);
 });
