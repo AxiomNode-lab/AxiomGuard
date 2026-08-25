@@ -39,6 +39,7 @@
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "test:integration:frameworks": "npm run build && node --test tests/frameworks.integration.mjs",
     "test:integration:redis": "npm run build && node --test tests/redis.integration.mjs",
+    "benchmark": "npm run build && node bench/benchmark.mjs",
     "prepack": "npm run build",
     "scan:self": "npm run build && node dist/cli.js scan ."
   },
