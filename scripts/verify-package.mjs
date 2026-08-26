@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 
 const root = process.cwd();
 
@@ -65,9 +66,14 @@ void verifyGitHubWebhookDelivery;
 
   const installedPackage = JSON.parse(await readFile(path.join(workspace, 'node_modules', '@axiomnode-lab', 'guard', 'package.json'), 'utf8'));
   if (installedPackage.version !== packResult[0].version) throw new Error('installed tarball version does not match npm pack metadata');
+  if (installedPackage.bin?.axiomguard !== 'dist/cli.js') throw new Error('published package metadata does not expose the axiomguard CLI');
+
+  const shim = path.join(workspace, 'node_modules', '.bin', process.platform === 'win32' ? 'axiomguard.cmd' : 'axiomguard');
+  await access(shim);
+  run('npm', ['exec', '--', 'axiomguard', '--help'], workspace);
   run(process.execPath, [path.join(workspace, 'node_modules', '@axiomnode-lab', 'guard', 'dist', 'cli.js'), 'scan', workspace, '--no-fail'], workspace);
 
-  console.log(`Verified clean-room install of @axiomnode-lab/guard@${installedPackage.version}`);
+  console.log(`Verified clean-room install of @axiomnode-lab/guard@${installedPackage.version}, including the CLI shim`);
 } finally {
   await rm(workspace, { recursive: true, force: true });
   await rm(archive, { force: true });
