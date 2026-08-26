@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "A zero-runtime-dependency security SDK for Node.js: webhooks, request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
