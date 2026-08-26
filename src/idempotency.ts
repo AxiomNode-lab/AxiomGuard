@@ -105,6 +105,7 @@ function decodeQuotedKey(value: string): string | null {
       index += 1;
       continue;
     }
+    if (char === '"') throw new TypeError('Unescaped quote in Idempotency-Key');
     result += char;
   }
   return result;
