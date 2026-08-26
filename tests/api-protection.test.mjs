@@ -140,17 +140,20 @@ test('Meta webhook verification validates X-Hub-Signature-256', () => {
   const body = Buffer.from('{"object":"whatsapp_business_account"}');
   const secret = 'meta-app-secret';
   const signature = `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
+  const replacement = signature.endsWith('0') ? '1' : '0';
+  const wrongSignature = `${signature.slice(0, -1)}${replacement}`;
   assert.equal(verifyMetaWebhook(body, signature, secret), true);
-  assert.equal(verifyMetaWebhook(body, `${signature.slice(0, -1)}0`, secret), false);
+  assert.equal(verifyMetaWebhook(body, wrongSignature, secret), false);
 });
 
-test('Slack webhook verification binds timestamp, freshness and replay state', async () => {
+test('Slack webhook verification binds timestamp, freshness and canonical replay state', async () => {
   const body = Buffer.from('token=ignored&command=%2Fhello');
   const secret = 'slack-signing-secret';
   const now = 1_800_000_000_000;
   const timestamp = Math.floor(now / 1000);
   const signed = Buffer.concat([Buffer.from(`v0:${timestamp}:`), body]);
   const signature = `v0=${createHmac('sha256', secret).update(signed).digest('hex')}`;
+  const uppercaseSignature = `v0=${signature.slice(3).toUpperCase()}`;
   const replayStore = new MemoryReplayStore();
 
   assert.deepEqual(
@@ -158,7 +161,7 @@ test('Slack webhook verification binds timestamp, freshness and replay state', a
     { ok: true },
   );
   assert.deepEqual(
-    await verifySlackWebhook(body, signature, timestamp, secret, { now: now + 1, replayStore }),
+    await verifySlackWebhook(body, uppercaseSignature, timestamp, secret, { now: now + 1, replayStore }),
     { ok: false, reason: 'replay' },
   );
   assert.deepEqual(
