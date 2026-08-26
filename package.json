@@ -52,5 +52,5 @@
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
   "engines": { "node": ">=20" },
-  "devDependencies": { "@types/node": "25.1.0", "typescript": "5.8.3" }
+  "devDependencies": { "@types/node": "26.2.0", "typescript": "7.0.2" }
 }
