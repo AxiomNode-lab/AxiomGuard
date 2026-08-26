@@ -23,23 +23,20 @@ npmjs is the primary public install path because it does not require GitHub Pack
 npm install @axiomnode-lab/guard
 ```
 
-The first public npmjs publish was performed interactively with account authentication and 2FA. Normal future releases should use npm Trusted Publishing/OIDC rather than a long-lived npm write token.
+The first public npmjs publish was performed interactively with account authentication and 2FA. Normal future releases use npm Trusted Publishing/OIDC rather than a long-lived npm write token.
 
 ### Trusted Publishing setup
 
-After the package exists on npmjs:
+The Trusted Publisher for `@axiomnode-lab/guard` is configured for GitHub Actions with:
 
-1. Open the package settings for `@axiomnode-lab/guard` on npmjs.
-2. Add a Trusted Publisher using GitHub Actions with:
-   - GitHub organization/user: `AxiomNode-lab`
-   - Repository: `AxiomGuard`
-   - Workflow filename: `publish-npmjs.yml`
-   - Allowed action: `npm publish`
-3. In GitHub repository settings create repository variable `NPMJS_PUBLISH=true`.
-4. Do not add `NPM_TOKEN` for normal releases.
-5. Keep `id-token: write` on the npmjs workflow.
+- GitHub organization/user: `AxiomNode-lab`
+- Repository: `AxiomGuard`
+- Workflow filename: `publish-npmjs.yml`
+- Allowed action: `npm publish`
 
-The workflow uses a Trusted-Publishing-capable npm version, checks whether the exact package version already exists, refuses ambiguous registry/network failures, publishes through OIDC, and reads the version back after publication. Eligible trusted publishes from a public repository receive npm provenance automatically.
+The repository does not require a long-lived `NPM_TOKEN` for normal releases. The npmjs workflow keeps `id-token: write`, uses a Trusted-Publishing-capable npm version, checks whether the exact package version already exists, refuses ambiguous registry/network failures, publishes through OIDC only when the version is absent, and reads a newly published version back after publication. Eligible trusted publishes from a public repository receive npm provenance automatically.
+
+The workflow is intentionally enabled directly on `release.published` and manual `workflow_dispatch` events now that Trusted Publishing is configured. A separate repository variable gate is no longer required.
 
 ## GitHub Packages
 
@@ -85,13 +82,12 @@ Published artifacts must then be verified independently. Source version alone is
 The remaining completion sequence for 0.6.1 is:
 
 1. Keep npmjs `@axiomnode-lab/guard@0.6.1` as the public package of record for the 0.6 line.
-2. Configure the npm Trusted Publisher for `publish-npmjs.yml`.
-3. Set GitHub repository variable `NPMJS_PUBLISH=true`.
-4. Create GitHub Release/tag `v0.6.1` from the qualified `main` commit.
-5. Confirm the release-triggered npmjs workflow detects 0.6.1 already exists and exits successfully without attempting a divergent republish.
-6. Confirm the release-triggered GHCR workflow emits `0.6.1`, `0.6`, and `latest` tags and completes with SBOM/provenance enabled.
-7. Verify the immutable GitHub Action reference `AxiomNode-lab/AxiomGuard@v0.6.1` before documenting it as the production example.
-8. Update README release wording only after the GitHub Release and release-triggered artifact checks are confirmed.
+2. Keep the configured npm Trusted Publisher bound to `AxiomNode-lab/AxiomGuard` and `publish-npmjs.yml` with `npm publish` permission.
+3. Create GitHub Release/tag `v0.6.1` from the qualified `main` commit.
+4. Confirm the release-triggered npmjs workflow detects 0.6.1 already exists and exits successfully without attempting a divergent republish.
+5. Confirm the release-triggered GHCR workflow emits `0.6.1`, `0.6`, and `latest` tags and completes with SBOM/provenance enabled.
+6. Verify the immutable GitHub Action reference `AxiomNode-lab/AxiomGuard@v0.6.1` before documenting it as the production example.
+7. Update README release wording only after the GitHub Release and release-triggered artifact checks are confirmed.
 
 ## Later versions
 
