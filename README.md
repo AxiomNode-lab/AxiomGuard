@@ -11,58 +11,37 @@
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 </div>
 
-AxiomGuard is a compact security toolkit for backend applications that need strong defaults without pulling in a large dependency tree. It brings together common controls for API protection, signed webhooks, SSRF-aware outbound requests, idempotency, rate limiting, secure cookies, CSRF, CORS, defensive headers, environment validation, redaction, filesystem safety and repository secret scanning.
+AxiomGuard is a modular security toolkit for backend services. It provides focused primitives for signed webhooks, API keys, browser request policy, idempotency, SSRF-aware outbound requests, rate limiting, secure cookies, CSRF, CORS, security headers, environment validation, secret-safe logging and repository scanning.
 
-The library is intentionally modular. Use the root package for convenience or import only the subpath that matches the control you need.
+Use the complete package when convenience matters, or import a focused subpath when you only need one control.
 
 ## Install
+
+**Requirements:** Node.js 20 or newer. AxiomGuard is published as an ES module.
 
 ```bash
 npm install @axiomnode-lab/guard
 ```
 
-ES modules are supported directly:
+Also works with other package managers:
 
-```ts
-import { generateApiKey, safeFetch } from '@axiomnode-lab/guard';
+```bash
+pnpm add @axiomnode-lab/guard
+# or
+yarn add @axiomnode-lab/guard
 ```
 
-## Why AxiomGuard
+## Quick start
 
-- **Zero runtime dependencies** in the core package and adapters.
-- **Framework-neutral primitives** that work without forcing an application architecture.
-- **Express, Fastify and Hono adapters** for common HTTP integration points.
-- **Provider-aware webhook verification** for GitHub, Stripe, Slack and Meta/WhatsApp flows.
-- **Fail-closed security decisions** for ambiguous or unsafe request states where appropriate.
-- **Explicit boundaries** for controls that cannot replace network isolation, authorization or durable application state.
-- **CLI and programmatic scanning** with text, JSON and SARIF output.
+### Secure an Express API
 
-## Core capabilities
-
-| Area | What AxiomGuard provides |
-| --- | --- |
-| API keys | Secure generation, hashing, verification and masking |
-| Webhooks | HMAC verification, freshness checks and replay protection helpers |
-| Browser request policy | Fetch Metadata and exact-Origin policy for unsafe requests |
-| Idempotency | Key normalization, request fingerprints and bounded/atomic claim stores |
-| SSRF protection | URL/DNS validation and redirect-aware guarded fetches |
-| Rate limiting | Fixed-window limiter, Redis stores and response-header helpers |
-| Cookies | Secure serialization with prefix and attribute validation |
-| CSRF | Signed, expiring and optionally session-bound tokens |
-| CORS | Strict origin and preflight policy helpers |
-| Security headers | CSP, HSTS, cross-origin and defensive header builders |
-| Environment | Typed configuration parsing with validation and defaults |
-| Logging | Secret redaction and PII masking helpers |
-| Filesystem | Traversal-safe paths and filename sanitization |
-| Scanner | Secret scanning with baselines, fingerprints, JSON and SARIF |
-| Framework adapters | Express, Fastify, Hono and Redis integration layers |
-
-## Browser-facing API protection
-
-AxiomGuard can combine CORS, defensive headers and a browser request policy in one framework adapter. The request policy uses Fetch Metadata when available and falls back to exact Origin validation for unsafe browser requests.
+If you already use Express, the adapter is the fastest way to add defensive response headers, CORS handling and an opt-in browser request policy.
 
 ```ts
+import express from 'express';
 import { createExpressSecurityMiddleware } from '@axiomnode-lab/guard/adapters/express';
+
+const app = express();
 
 app.use(createExpressSecurityMiddleware({
   cors: {
@@ -74,93 +53,136 @@ app.use(createExpressSecurityMiddleware({
     allowedOrigins: ['https://app.example.com'],
   },
 }));
+
+app.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.post('/profile', (_req, res) => {
+  res.json({ updated: true });
+});
+
+app.listen(3000);
 ```
 
-`requestPolicy` is opt-in so machine-to-machine APIs are not changed silently. For unsafe browser requests it rejects cross-site traffic, `Origin: null`, untrusted origins and missing-origin traffic unless explicitly allowed.
+With that configuration, ordinary requests receive AxiomGuard's defensive headers, allowed browser origins receive CORS headers, preflight requests are handled automatically, and unsafe browser requests from untrusted origins are rejected.
 
-See [API Protection](docs/API_PROTECTION.md).
+`requestPolicy` is a CSRF-oriented browser control. It does **not** replace authentication or authorization.
 
-## Provider-aware webhooks
+### Fastify
 
-Always verify signatures against the exact raw request body received from the provider.
+```ts
+import Fastify from 'fastify';
+import { createFastifySecurityHook } from '@axiomnode-lab/guard/adapters/fastify';
+
+const app = Fastify();
+
+app.addHook('onRequest', createFastifySecurityHook({
+  cors: {
+    origins: ['https://app.example.com'],
+    allowMethods: ['GET', 'POST'],
+  },
+  requestPolicy: {
+    allowedOrigins: ['https://app.example.com'],
+  },
+}));
+```
+
+### Hono
+
+```ts
+import { Hono } from 'hono';
+import { createHonoSecurityMiddleware } from '@axiomnode-lab/guard/adapters/hono';
+
+const app = new Hono();
+
+app.use('*', createHonoSecurityMiddleware({
+  cors: {
+    origins: ['https://app.example.com'],
+    allowMethods: ['GET', 'POST'],
+  },
+  requestPolicy: {
+    allowedOrigins: ['https://app.example.com'],
+  },
+}));
+```
+
+See [Framework adapters](docs/ADAPTERS.md) for adapter options and Redis-backed integrations.
+
+## Use AxiomGuard by goal
+
+| Goal | Import | Start with |
+| --- | --- | --- |
+| Generate and verify API keys | `@axiomnode-lab/guard/api-keys` | `createApiKey`, `verifyApiKey` |
+| Verify signed webhooks | `@axiomnode-lab/guard/webhooks` | `verifyGitHubWebhookDelivery`, `verifyStripeWebhook`, `verifySlackWebhook`, `verifyMetaWebhook` |
+| Protect unsafe browser requests | `@axiomnode-lab/guard/request-policy` | `evaluateRequestPolicy` |
+| Add idempotency claims | `@axiomnode-lab/guard/idempotency` | `createIdempotencyFingerprint`, `claimIdempotencyKey` |
+| Guard outbound URLs and fetches | `@axiomnode-lab/guard/fetch` | `safeFetch` |
+| Rate-limit requests | `@axiomnode-lab/guard/rate-limit` | `checkRateLimit`, `createRateLimitHeaders` |
+| Build CORS policy | `@axiomnode-lab/guard/cors` | `createCorsHeaders` |
+| Set defensive response headers | `@axiomnode-lab/guard/headers` | `createSecurityHeaders` |
+| Create secure cookies | `@axiomnode-lab/guard/cookies` | `serializeCookie` |
+| Create and verify CSRF tokens | `@axiomnode-lab/guard/csrf` | `createCsrfToken`, `verifyCsrfToken` |
+| Validate environment variables | `@axiomnode-lab/guard/env` | `requireEnv` |
+| Redact secrets and PII | `@axiomnode-lab/guard/logging` | `redactSecrets`, `maskPII` |
+| Scan a repository for secrets | `@axiomnode-lab/guard/scanner` | `scanSecrets`, CLI `axiomguard scan` |
+
+## Common recipes
+
+### API keys
+
+Generate an opaque API key, return the token once, and store only the identifier and digest.
+
+```ts
+import { createApiKey, verifyApiKey } from '@axiomnode-lab/guard/api-keys';
+
+const created = createApiKey({ prefix: 'svc' });
+
+// Return created.token to the client once.
+// Persist created.id and created.digest in your database.
+
+const accepted = verifyApiKey(presentedToken, created.digest);
+
+if (!accepted) {
+  throw new Error('Invalid API key');
+}
+```
+
+Generated API keys are high-entropy random credentials. `verifyApiKey()` compares their SHA-256 digests in constant time; this API is not intended for human passwords.
+
+### Signed webhooks with replay protection
+
+Always verify a provider signature against the **exact raw request body**. Parsing and re-serializing JSON before verification can change the signed bytes.
 
 ```ts
 import {
   MemoryReplayStore,
   verifyGitHubWebhookDelivery,
-  verifyMetaWebhook,
-  verifySlackWebhook,
-  verifyStripeWebhook,
 } from '@axiomnode-lab/guard/webhooks';
 
 const replayStore = new MemoryReplayStore();
 
-const metaOk = verifyMetaWebhook(
+const result = await verifyGitHubWebhookDelivery(
   rawBody,
-  req.headers['x-hub-signature-256'],
-  process.env.META_APP_SECRET!,
-);
-
-const githubResult = await verifyGitHubWebhookDelivery(
-  rawBody,
-  req.headers['x-hub-signature-256'],
+  request.headers['x-hub-signature-256'],
   process.env.GITHUB_WEBHOOK_SECRET!,
-  req.headers['x-github-delivery'],
+  request.headers['x-github-delivery'],
   { replayStore },
 );
 
-const stripeResult = await verifyStripeWebhook(
-  rawBody,
-  req.headers['stripe-signature'],
-  process.env.STRIPE_WEBHOOK_SECRET!,
-  { toleranceSeconds: 300, replayStore },
-);
-
-const slackResult = await verifySlackWebhook(
-  rawBody,
-  req.headers['x-slack-signature'],
-  req.headers['x-slack-request-timestamp'],
-  process.env.SLACK_SIGNING_SECRET!,
-  { toleranceSeconds: 300, replayStore },
-);
+if (!result.ok) {
+  // result.reason is invalid-signature, invalid-delivery, or replay.
+  throw new Error(`Rejected webhook: ${result.reason}`);
+}
 ```
 
-For multi-instance services, use a shared replay store such as Redis rather than process-local memory.
+A single-process service can use `MemoryReplayStore`. Multi-instance deployments should use one of the Redis replay-store adapters so all instances share replay state.
 
-## Idempotency claims
+Provider helpers are also available for Stripe, Slack and Meta/WhatsApp signing formats. See [API reference](docs/API.md).
 
-Bind an idempotency key to the request semantics that first claimed it. Reusing the same key with the same fingerprint is a replay; reusing it with different semantics is a conflict.
+### Guarded outbound fetches
 
-```ts
-import {
-  MemoryIdempotencyStore,
-  claimIdempotencyKey,
-  createIdempotencyFingerprint,
-} from '@axiomnode-lab/guard/idempotency';
-
-const store = new MemoryIdempotencyStore();
-
-const fingerprint = createIdempotencyFingerprint({
-  method: req.method,
-  target: req.url,
-  contentType: req.headers['content-type'],
-  body: rawBody,
-});
-
-const status = await claimIdempotencyKey(
-  req.headers['idempotency-key'],
-  fingerprint,
-  { store, ttlMs: 86_400_000 },
-);
-```
-
-The memory store is bounded. Redis adapters provide atomic claims for distributed services.
-
-AxiomGuard stores the request claim, not your application response or database transaction. Full response replay still belongs in durable application-specific storage.
-
-## Guarded outbound requests
-
-`safeFetch()` validates the initial destination and followed redirects, limits redirect depth, applies a total timeout and strips sensitive credentials when a redirect crosses origins.
+Use `safeFetch()` when a destination can be influenced by a user or external system.
 
 ```ts
 import { safeFetch } from '@axiomnode-lab/guard/fetch';
@@ -174,22 +196,59 @@ const response = await safeFetch(userSuppliedUrl, {
     accept: 'application/json',
   },
 });
+
+const data = await response.json();
 ```
 
-For validation without performing a request:
+The helper validates the initial destination and followed redirects, limits redirect depth, applies a total timeout and strips sensitive credentials when a redirect crosses origins.
+
+It reduces common SSRF mistakes, but it does not replace egress controls or eliminate DNS rebinding/time-of-check-time-of-use risk. See [Safe Fetch](docs/SAFE_FETCH.md).
+
+### Idempotent write requests
+
+Bind an idempotency key to the semantics of the request that first claimed it.
 
 ```ts
-import { assertSafeResolvedUrl } from '@axiomnode-lab/guard/web';
+import {
+  MemoryIdempotencyStore,
+  claimIdempotencyKey,
+  createIdempotencyFingerprint,
+} from '@axiomnode-lab/guard/idempotency';
 
-const target = await assertSafeResolvedUrl(userInput, {
-  protocols: ['https:'],
-  allowedHosts: ['api.example.com'],
+const store = new MemoryIdempotencyStore();
+
+const fingerprint = createIdempotencyFingerprint({
+  method: request.method,
+  target: request.url,
+  contentType: request.headers['content-type'],
+  body: rawBody,
 });
+
+const status = await claimIdempotencyKey(
+  request.headers['idempotency-key'],
+  fingerprint,
+  { store, ttlMs: 86_400_000 },
+);
+
+switch (status) {
+  case 'accepted':
+    // Process the operation.
+    break;
+  case 'replay':
+    // Same key and same request semantics.
+    break;
+  case 'conflict':
+    // Same key reused for a different request.
+    break;
+  case 'capacity':
+    // Store is full; fail closed rather than silently evicting a live claim.
+    break;
+}
 ```
 
-These helpers reduce common SSRF mistakes, but they do not replace outbound network controls or eliminate DNS rebinding/time-of-check-time-of-use risk. See [Safe Fetch](docs/SAFE_FETCH.md) and [Threat Model](THREAT_MODEL.md).
+The idempotency module stores claim state, not your application response or database transaction result. If you need full response replay, persist that result in application-specific durable storage.
 
-## Rate limiting
+### Rate limiting
 
 ```ts
 import {
@@ -209,34 +268,15 @@ const result = await checkRateLimit(`ip:${clientIp}`, {
 const headers = createRateLimitHeaders(result, {
   policyName: 'api',
 });
+
+if (!result.allowed) {
+  // Return HTTP 429 with the generated rate-limit headers.
+}
 ```
 
-Use Redis-backed stores for distributed or high-volume deployments.
+Use a Redis-backed store for distributed or high-volume services.
 
-## Secure cookies and CSRF
-
-```ts
-import { serializeCookie } from '@axiomnode-lab/guard/cookies';
-import { createCsrfToken, verifyCsrfToken } from '@axiomnode-lab/guard/csrf';
-
-const cookie = serializeCookie('__Host-session', sessionToken, {
-  sameSite: 'Lax',
-  maxAge: 3600,
-});
-
-const csrf = createCsrfToken(process.env.CSRF_SECRET!, {
-  sessionId: session.id,
-});
-
-const csrfOk = verifyCsrfToken(csrf, process.env.CSRF_SECRET!, {
-  sessionId: session.id,
-  maxAgeSeconds: 7200,
-});
-```
-
-Cookie prefix, `Secure`, `SameSite`, partitioned-cookie and related invariants are validated instead of emitting contradictory combinations.
-
-## Environment validation and redaction
+### Environment validation and safe logging
 
 ```ts
 import { requireEnv } from '@axiomnode-lab/guard/env';
@@ -256,79 +296,82 @@ const safeEvent = redactSecrets(event, {
 });
 ```
 
-Redaction supports key heuristics, credential patterns and explicit wildcard paths without mutating the source object.
+`redactSecrets()` returns a redacted value without mutating the original object.
 
-## Secret scanner
+## Secret scanner CLI
 
-The `axiomguard` CLI scans repositories for common secret patterns without printing matched credential values.
+Installing the package exposes the `axiomguard` command.
 
 ```bash
-axiomguard scan .
-axiomguard scan . --json
-axiomguard scan . --sarif --output axiomguard.sarif
-axiomguard scan . --write-baseline .axiomguard-baseline.json
+npx axiomguard scan .
 ```
 
-Programmatic use:
+Useful output modes:
 
-```ts
-import { findingsToSarif, scanSecrets } from '@axiomnode-lab/guard/scanner';
-
-const findings = await scanSecrets('.');
-const sarif = findingsToSarif(findings);
+```bash
+npx axiomguard scan . --json
+npx axiomguard scan . --sarif --output axiomguard.sarif
+npx axiomguard scan . --write-baseline .axiomguard-baseline.json
+npx axiomguard scan . --no-fail
 ```
+
+The scanner reports the finding type, file, line and a non-secret fingerprint. It intentionally does not print detected secret values.
 
 See [Scanner](docs/SCANNER.md) and [GitHub Action](docs/GITHUB_ACTION.md).
 
-## Framework adapters
+## Import style
 
-AxiomGuard exposes focused adapters rather than taking ownership of your application lifecycle:
+The root package re-exports the complete public API:
 
 ```ts
-import { createExpressSecurityMiddleware } from '@axiomnode-lab/guard/adapters/express';
-import { createFastifySecurityPlugin } from '@axiomnode-lab/guard/adapters/fastify';
-import { createHonoSecurityMiddleware } from '@axiomnode-lab/guard/adapters/hono';
+import {
+  createApiKey,
+  safeFetch,
+  redactSecrets,
+} from '@axiomnode-lab/guard';
 ```
 
-Redis adapters are available for replay protection, rate limiting and idempotency state.
+Focused subpath imports are also supported:
 
-See [Adapters](docs/ADAPTERS.md).
+```ts
+import { createApiKey } from '@axiomnode-lab/guard/api-keys';
+import { safeFetch } from '@axiomnode-lab/guard/fetch';
+import { redactSecrets } from '@axiomnode-lab/guard/logging';
+```
 
-## Module map
+Subpath imports make the capability being used explicit and are the recommended style in larger services.
+
+## Package entry points
 
 | Import | Purpose |
 | --- | --- |
-| `@axiomnode-lab/guard/api-keys` | API key primitives |
+| `@axiomnode-lab/guard` | Complete public API |
+| `@axiomnode-lab/guard/api-keys` | API key generation, hashing, verification and masking |
 | `@axiomnode-lab/guard/webhooks` | Generic and provider-specific webhook verification |
-| `@axiomnode-lab/guard/request-policy` | Browser request policy |
-| `@axiomnode-lab/guard/idempotency` | Idempotency keys, fingerprints and stores |
+| `@axiomnode-lab/guard/request-policy` | Fetch Metadata and Origin request filtering |
+| `@axiomnode-lab/guard/idempotency` | Idempotency keys, fingerprints and claim stores |
+| `@axiomnode-lab/guard/fetch` | Redirect-aware guarded outbound fetches |
+| `@axiomnode-lab/guard/web` | URL, DNS, IP and redirect safety helpers |
+| `@axiomnode-lab/guard/rate-limit` | Rate limiting and response-header helpers |
 | `@axiomnode-lab/guard/cookies` | Secure cookie serialization |
-| `@axiomnode-lab/guard/cors` | CORS policy |
-| `@axiomnode-lab/guard/csrf` | CSRF tokens |
-| `@axiomnode-lab/guard/headers` | Defensive headers and CSP |
-| `@axiomnode-lab/guard/presets` | Header presets |
-| `@axiomnode-lab/guard/web` | URL and DNS safety checks |
-| `@axiomnode-lab/guard/fetch` | Guarded outbound fetches |
-| `@axiomnode-lab/guard/rate-limit` | Rate limiting |
-| `@axiomnode-lab/guard/logging` | Secret redaction and PII masking |
+| `@axiomnode-lab/guard/cors` | CORS policy helpers |
+| `@axiomnode-lab/guard/csrf` | Signed CSRF tokens |
+| `@axiomnode-lab/guard/headers` | Defensive headers and CSP helpers |
+| `@axiomnode-lab/guard/presets` | Security-header presets |
 | `@axiomnode-lab/guard/env` | Environment validation |
+| `@axiomnode-lab/guard/logging` | Secret redaction and PII masking |
 | `@axiomnode-lab/guard/filesystem` | Safe paths and filenames |
-| `@axiomnode-lab/guard/scanner` | Secret scanner API |
-| `@axiomnode-lab/guard/adapters/*` | Framework and Redis adapters |
+| `@axiomnode-lab/guard/scanner` | Secret scanner API and SARIF conversion |
+| `@axiomnode-lab/guard/adapters/express` | Express middleware |
+| `@axiomnode-lab/guard/adapters/fastify` | Fastify hook |
+| `@axiomnode-lab/guard/adapters/hono` | Hono middleware |
+| `@axiomnode-lab/guard/adapters/redis` | Redis-backed replay, rate-limit and idempotency stores |
 
 ## Security boundaries
 
-AxiomGuard is a set of security primitives, not a replacement for the rest of your security architecture. In particular, it does not replace:
+AxiomGuard provides security primitives; it is not a replacement for the rest of an application's security architecture. In particular, it does not replace authentication or authorization, a secrets manager, password hashing with Argon2/scrypt/bcrypt, outbound firewalling, durable transaction storage, or application-specific threat modeling.
 
-- authentication or authorization systems
-- a WAF or dedicated abuse-prevention platform
-- a secrets manager
-- password hashing with Argon2, scrypt or bcrypt
-- outbound firewalling and cloud metadata protections
-- durable transaction/result storage for fully replayable idempotent APIs
-- application-specific threat modeling and security review
-
-Read [SECURITY.md](SECURITY.md) for reporting security issues and [THREAT_MODEL.md](THREAT_MODEL.md) for design boundaries.
+Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md](THREAT_MODEL.md) for design boundaries.
 
 ## Documentation
 
