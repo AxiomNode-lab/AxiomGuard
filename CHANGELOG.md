@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.6.3] - 2026-08-27
+
+### Changed
+
+- Rework the package README around installation, framework quick starts and copy-paste usage recipes.
+- Correct public examples to use the actual exported API names, including `createApiKey` and `createFastifySecurityHook`.
+- Add a goal-oriented import map, CLI examples and clearer guidance for Express, Fastify, Hono, webhooks, idempotency, safe fetches, rate limiting, environment validation and redaction.
+- No runtime API or security-control behavior changed in this patch.
+
 ## [0.6.2] - 2026-08-27
 
 ### Changed
