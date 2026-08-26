@@ -21,6 +21,7 @@ All notable changes to this project are documented here.
 - Packaged artifacts now include the full `docs` directory so README documentation links remain usable from the installed tarball.
 - Clean-room package qualification verifies the new exports and TypeScript declarations.
 - Package version advanced to `0.6.0`.
+- CodeQL remains enabled through the repository's GitHub default setup; a duplicate advanced-configuration workflow is intentionally not committed because GitHub rejects advanced and default CodeQL setups running together.
 
 ## [0.5.1] - 2026-08-26
 
@@ -38,7 +39,7 @@ All notable changes to this project are documented here.
 - Clean-room tarball installation, root/subpath import, CLI and TypeScript declaration qualification.
 - Real Express 5, Fastify 5 and Hono 4 integration tests.
 - Real node-redis/ioredis integration tests against a Redis service in CI.
-- `THREAT_MODEL.md` and a CodeQL workflow.
+- `THREAT_MODEL.md` and CodeQL qualification through GitHub's repository default setup.
 
 ### Changed
 
