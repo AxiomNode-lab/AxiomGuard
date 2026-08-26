@@ -141,7 +141,11 @@ export async function verifyStripeWebhook(payload: string | Buffer, signatureHea
   const now = resolveNow(options.now);
   if (Math.abs(now - parsed.timestamp * 1000) > tolerance * 1000) return { ok: false, reason: 'stale-timestamp' };
   if (options.replayStore) {
-    const key = createWebhookReplayKey(signatureHeader);
+    // Derive replay identity from the verified canonical signature rather than
+    // caller-controlled header ordering or extra v1 fields.
+    const key = createHash('sha256')
+      .update(`stripe\0${parsed.timestamp}\0${expected.toString('hex')}`, 'utf8')
+      .digest('hex');
     if (!await options.replayStore.claim(key, now + tolerance * 1000, now)) return { ok: false, reason: 'replay' };
   }
   return { ok: true };
@@ -170,7 +174,10 @@ export async function verifySlackWebhook(
   if (Math.abs(now - parsedTimestamp * 1000) > tolerance * 1000) return { ok: false, reason: 'stale-timestamp' };
 
   if (options.replayStore) {
-    const replayKey = createHash('sha256').update(`slack-signature\0${signature ?? ''}`, 'utf8').digest('hex');
+    const expected = createHmac('sha256', signingSecret).update(signed).digest('hex');
+    const replayKey = createHash('sha256')
+      .update(`slack\0${parsedTimestamp}\0${expected}`, 'utf8')
+      .digest('hex');
     if (!await options.replayStore.claim(replayKey, now + tolerance * 1000, now)) return { ok: false, reason: 'replay' };
   }
   return { ok: true };
