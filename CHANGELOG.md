@@ -2,7 +2,27 @@
 
 All notable changes to this project are documented here.
 
-## [0.5.1] - Unreleased
+## [0.6.0] - 2026-08-26
+
+### Added
+
+- Fetch-Metadata/Origin request policy for unsafe browser requests with conservative same-site/null-origin behavior and explicit machine-client opt-in.
+- Opt-in request-policy enforcement in the Express, Fastify and Hono adapters.
+- Idempotency-key normalization, SHA-256 store-key hashing, request fingerprints and bounded in-memory claim state.
+- Atomic node-redis and ioredis idempotency adapters that distinguish first use, replay and conflicting key reuse.
+- Meta/WhatsApp `X-Hub-Signature-256` verification against the raw request body.
+- Slack v0 signed-request verification with timestamp freshness and optional replay protection.
+- Real framework and Redis integration coverage for the new API-protection primitives.
+- `docs/API_PROTECTION.md` with deployment boundaries and examples.
+
+### Changed
+
+- Package exports now include `/request-policy` and `/idempotency`.
+- Packaged artifacts now include the full `docs` directory so README documentation links remain usable from the installed tarball.
+- Clean-room package qualification verifies the new exports and TypeScript declarations.
+- Package version advanced to `0.6.0`.
+
+## [0.5.1] - 2026-08-26
 
 ### Security
 
