@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [0.6.1] - 2026-08-26
+
+### Fixed
+
+- Preserve the `axiomguard` executable in published package metadata by using npm's normalized `bin` path form (`dist/cli.js`).
+- Extend clean-room package qualification to verify the installed `node_modules/.bin/axiomguard` shim and execute it, preventing silent CLI removal during publish normalization.
+
+### Release note
+
+- GitHub Packages `0.6.0` was published successfully as a library package, but npm 11 normalized its `bin` entry and removed the CLI mapping during publication. Because registry versions are immutable, the corrected distribution is `0.6.1` rather than republishing divergent `0.6.0` artifacts.
+
 ## [0.6.0] - 2026-08-26
 
 ### Added
