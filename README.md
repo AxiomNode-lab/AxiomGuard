@@ -16,9 +16,13 @@ AxiomGuard collects backend security controls that are easy to rewrite badly and
 
 It stays intentionally small. Core and adapters have **no runtime npm dependencies**, and security assumptions are documented next to the feature instead of hidden behind a generic “secure by default” claim.
 
+> **Release status:** the source is being qualified for the `0.5.1` release line. A GitHub Release/tag and the public npmjs package are not considered available until they are independently verified after publication. See [docs/RELEASE.md](docs/RELEASE.md).
+
 ## Install
 
-GitHub Packages:
+### GitHub Packages
+
+GitHub's npm registry requires authentication, including for public packages. Configure the scope and authenticate with a GitHub token that has `read:packages` before installing:
 
 ```ini
 # ~/.npmrc
@@ -30,14 +34,22 @@ GitHub Packages:
 npm install @axiomnode-lab/guard
 ```
 
-The repository also contains an npmjs publishing path for public distribution. It remains disabled until the npm scope and trusted publisher are configured; see [docs/RELEASE.md](docs/RELEASE.md).
+### npmjs
+
+The intended lowest-friction public install path is npmjs. **Do not assume it is live until the release checklist verifies the registry entry.** Once published and verified, installation will be the normal command without a custom registry:
+
+```bash
+npm install @axiomnode-lab/guard
+```
+
+Normal npmjs releases are designed to use npm Trusted Publishing/OIDC rather than a long-lived npm write token. See [docs/RELEASE.md](docs/RELEASE.md).
 
 ## Module map
 
 | Import | Purpose |
 | --- | --- |
 | `/api-keys` | High-entropy API keys, digests, verification and masking |
-| `/webhooks` | Generic HMAC, GitHub, Stripe-style signed timestamps and replay stores |
+| `/webhooks` | Generic HMAC, GitHub/Stripe verification and replay-store helpers |
 | `/cookies` | Secure cookie serialization and prefix invariants |
 | `/cors` | Strict framework-neutral origin/preflight policy |
 | `/csrf` | Signed, expiring, optionally session-bound CSRF tokens |
@@ -47,7 +59,7 @@ The repository also contains an npmjs publishing path for public distribution. I
 | `/fetch` | Redirect-aware guarded Fetch API wrapper with per-hop validation |
 | `/rate-limit` | Fixed-window limiter, Redis adapters and response-header helpers |
 | `/logging` | Key-, pattern- and path-based secret redaction plus PII masking |
-| `/env` | Typed environment parsing, defaults, ranges and allowlists |
+| `/env` | Typed environment parsing, validated defaults, ranges and allowlists |
 | `/filesystem` | Traversal-safe paths and filename sanitization |
 | `/scanner` | Programmatic secret scanning, baselines, fingerprints and SARIF |
 | `/adapters/*` | Express, Fastify, Hono and Redis integration layers |
@@ -60,14 +72,18 @@ Use the root export for convenience or subpath imports for a smaller, clearer de
 ```ts
 import {
   MemoryReplayStore,
-  verifyGitHubWebhook,
+  verifyGitHubWebhookDelivery,
   verifyStripeWebhook,
 } from '@axiomnode-lab/guard/webhooks';
 
-const githubOk = verifyGitHubWebhook(
+const replayStore = new MemoryReplayStore();
+
+const githubResult = await verifyGitHubWebhookDelivery(
   rawBody,
   req.headers['x-hub-signature-256'],
   process.env.GITHUB_WEBHOOK_SECRET!,
+  req.headers['x-github-delivery'],
+  { replayStore },
 );
 
 const stripeResult = await verifyStripeWebhook(
@@ -76,12 +92,12 @@ const stripeResult = await verifyStripeWebhook(
   process.env.STRIPE_WEBHOOK_SECRET!,
   {
     toleranceSeconds: 300,
-    replayStore: new MemoryReplayStore(),
+    replayStore,
   },
 );
 ```
 
-For multiple service instances, replace `MemoryReplayStore` with a shared store. AxiomGuard includes node-redis and ioredis adapters that use atomic `NX` + `PX` claims.
+For multiple service instances, replace in-memory replay state with a shared store. AxiomGuard includes node-redis and ioredis adapters that use atomic `NX` + `PX` claims. GitHub delivery replay protection is additive because GitHub's HMAC signature itself does not carry a freshness timestamp.
 
 ## Express, Fastify and Hono
 
@@ -99,7 +115,7 @@ app.use(createExpressSecurityMiddleware({
 }));
 ```
 
-Equivalent adapters are available for Fastify and Hono. See [docs/ADAPTERS.md](docs/ADAPTERS.md) for framework and Redis examples.
+Equivalent adapters are available for Fastify and Hono. CI qualifies the adapters against pinned real framework versions in addition to structural unit tests. See [docs/ADAPTERS.md](docs/ADAPTERS.md).
 
 ## Rate limiting
 
@@ -126,7 +142,7 @@ if (!result.allowed) {
 }
 ```
 
-The helper can emit the current IETF draft `RateLimit-Policy`/`RateLimit` fields together with widely deployed compatibility fields. The draft is not treated as a finalized RFC. The memory store is single-process; shared deployments can use Redis adapters.
+The helper can emit the current IETF draft `RateLimit-Policy`/`RateLimit` fields together with compatibility fields. The memory store is bounded and single-process; sustained high-cardinality traffic can evict old entries, so distributed or high-volume deployments should use the Redis adapters.
 
 ## Security-header presets
 
@@ -176,7 +192,7 @@ const safeEvent = redactSecrets(event, {
 });
 ```
 
-Validated configuration is frozen. Redaction never mutates the source object and supports secret-key heuristics, credential patterns and explicit wildcard paths.
+Defaults are validated against their declared type/range/allowlist instead of bypassing schema constraints. Validated configuration is frozen. Redaction never mutates the source object and supports secret-key heuristics, credential patterns and explicit wildcard paths.
 
 ## SSRF-oriented URL checks
 
@@ -189,7 +205,7 @@ const target = await assertSafeResolvedUrl(userInput, {
 });
 ```
 
-This blocks common localhost/private/link-local/reserved targets at validation time. It does not eliminate DNS rebinding or time-of-check/time-of-use risk.
+The validator rejects common private, loopback, link-local, multicast, reserved/documentation, IPv4-mapped IPv6 and selected transition forms. It does not eliminate DNS rebinding or time-of-check/time-of-use risk.
 
 ## Guarded outbound fetches
 
@@ -207,7 +223,7 @@ const response = await safeFetch(userSuppliedUrl, {
 });
 ```
 
-The underlying Fetch implementation can still resolve DNS again when opening the connection, so this is **not** a complete DNS-rebinding/TOCTOU boundary. High-risk fetchers still need outbound network controls. See [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md).
+The underlying Fetch implementation can still resolve DNS again when opening the connection, so this is **not** a complete DNS-rebinding/TOCTOU boundary. High-risk fetchers still need outbound network controls. See [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Scanner: text, JSON and SARIF
 
@@ -231,16 +247,18 @@ const sarif = findingsToSarif(findings);
 
 ## GitHub Action
 
+No immutable release tag exists yet, so pre-release evaluation uses `main`:
+
 ```yaml
 - uses: actions/checkout@v6
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@v0.5.0
+  uses: AxiomNode-lab/AxiomGuard@main
   with:
     path: .
     fail-on-findings: 'true'
 ```
 
-The action exposes a SARIF path that can be uploaded with `github/codeql-action/upload-sarif@v4`. Full workflow: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
+For production, replace `@main` with a published release tag or immutable release commit SHA after the first GitHub Release is verified. The action exposes a SARIF path that can be uploaded with `github/codeql-action/upload-sarif@v4`. Full workflow: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
 ## Container
 
@@ -250,9 +268,11 @@ docker run --rm \
   ghcr.io/axiomnode-lab/axiomguard:edge scan /workspace
 ```
 
+The image runs the CLI as the non-root `node` user. Release builds are configured for OCI metadata, SBOM and provenance.
+
 ## Qualification and delivery
 
-Every pull request qualifies Node.js 20, 22 and 24 with type checking, regression tests, Node 24 coverage, package dry-run, published-subpath import smoke tests and a self scan. CI also runs the repository's composite GitHub Action against itself and validates its SARIF output.
+Pull requests qualify Node.js 20, 22 and 24 with type checking, regression tests, Node 24 coverage, a real packed-tarball clean-room install, CLI/type-declaration checks, package dry-run and a self scan. Separate CI jobs exercise real Express/Fastify/Hono lifecycles and node-redis/ioredis against a Redis service. CI also runs the composite GitHub Action against the repository and validates SARIF, while CodeQL provides an additional JavaScript/TypeScript analysis layer.
 
 Delivery paths:
 
@@ -263,10 +283,10 @@ main
 
 GitHub Release
 ├── GHCR semver/latest + SBOM + provenance
-└── npmjs publish (only when explicitly enabled/configured)
+└── npmjs publish (only after trusted-publisher configuration)
 ```
 
-The GitHub Packages workflow can also be started manually for diagnostics/retry and reads the exact version back after publishing before it reports success.
+Publication is considered successful only after the workflow reads the exact version back from the target registry. Registry/auth/network errors are not treated as proof that a version is missing.
 
 ## What AxiomGuard does not replace
 
@@ -277,7 +297,7 @@ The GitHub Packages workflow can also be started manually for diagnostics/retry 
 - a complete SAST or secrets-scanning platform
 - a security review of the application using it
 
-The package is useful when those boundaries are acceptable and explicit.
+Read [THREAT_MODEL.md](THREAT_MODEL.md) for assets, attacker capabilities, trust boundaries and explicit non-goals.
 
 ## Development
 
@@ -288,11 +308,12 @@ npm ci
 npm run typecheck
 npm test
 npm run test:coverage
+npm run test:package
 npm pack --dry-run
 npm run scan:self
 ```
 
-Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), [docs/SCANNER.md](docs/SCANNER.md), [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
+Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [THREAT_MODEL.md](THREAT_MODEL.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), [docs/SCANNER.md](docs/SCANNER.md), [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
 
 ## Contributing
 

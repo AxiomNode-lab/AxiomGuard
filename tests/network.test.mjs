@@ -44,7 +44,7 @@ test('safeFetch blocks a redirect to a private target before a second request', 
 
   await assert.rejects(
     safeFetch('https://8.8.8.8/start', { fetchImpl }),
-    /Private, loopback, link-local, multicast, or reserved IP addresses are blocked/,
+    /Private, loopback, link-local, multicast, transition, or reserved IP addresses are blocked/,
   );
   assert.equal(calls, 1);
 });

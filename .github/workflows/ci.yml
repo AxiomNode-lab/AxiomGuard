@@ -15,8 +15,8 @@ jobs:
       matrix:
         node: [20, 22, 24]
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -25,19 +25,81 @@ jobs:
       - run: npm test
       - run: npm run test:coverage
         if: matrix.node == 24
+      - run: npm run test:package
+        if: matrix.node == 24
+      - name: Run informational benchmark
+        if: matrix.node == 24
+        run: npm run benchmark
       - run: npm pack --dry-run
       - run: npm run scan:self
+
+  framework-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install pinned framework test dependencies
+        run: npm install --no-save --package-lock=false express@5.2.1 fastify@5.12.1 hono@4.13.4
+      - run: npm run test:integration:frameworks
+
+  redis-integration:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install pinned Redis client test dependencies
+        run: npm install --no-save --package-lock=false redis@6.2.1 ioredis@6.0.0
+      - run: npm run test:integration:redis
+
+  container-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build release container locally
+        run: docker build --pull -t axiomguard-ci .
+      - name: Verify non-root CLI and read-only workspace scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(docker run --rm --entrypoint id axiomguard-ci -u)" != "0"
+          docker run --rm axiomguard-ci --help >/tmp/axiomguard-help.txt
+          grep -q "AxiomGuard CLI" /tmp/axiomguard-help.txt
+          docker run --rm -v "$PWD:/workspace:ro" axiomguard-ci scan /workspace --no-fail
 
   action-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Run the repository action against itself
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Prepare safe workspace path containing spaces
+        shell: bash
+        run: |
+          mkdir -p "tests/action fixture"
+          printf 'safe=true\n' > "tests/action fixture/config.txt"
+      - name: Run the repository action against a path with spaces
         id: axiomguard
         uses: ./
         with:
-          path: .
+          path: 'tests/action fixture'
           fail-on-findings: 'true'
+          annotations: 'true'
       - name: Validate SARIF output
         env:
           SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}

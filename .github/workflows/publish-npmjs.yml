@@ -14,8 +14,8 @@ jobs:
     if: ${{ vars.NPMJS_PUBLISH == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: npm pack --dry-run
+      - run: npm run test:package
       - name: Verify release tag matches package version
         if: github.event_name == 'release'
         shell: bash
@@ -39,13 +39,22 @@ jobs:
         id: version
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          if npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+          set +e
+          npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org >/tmp/axiomguard-view.out 2>/tmp/axiomguard-view.err
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 0 ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "@axiomnode-lab/guard@${VERSION} already exists on npmjs; skipping."
-          else
+          elif grep -Eqi 'E404|404 Not Found' /tmp/axiomguard-view.err; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not determine npmjs version state; refusing to publish on an ambiguous registry/network failure."
+            sed -E 's#(npm_[A-Za-z0-9]+)#[REDACTED]#g' /tmp/axiomguard-view.err >&2
+            exit "$STATUS"
           fi
       - name: Publish public package with npm Trusted Publishing
         if: steps.version.outputs.publish == 'true'

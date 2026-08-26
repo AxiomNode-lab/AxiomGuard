@@ -23,34 +23,58 @@ export interface RateLimitResult extends RateLimitStoreState {
 }
 
 export interface RateLimitHeaderOptions {
-  /** Timestamp used to calculate reset delay. Defaults to Date.now(). */
   now?: number;
-  /** Stable policy identifier used in current IETF draft fields. Default: "default". */
   policyName?: string;
-  /** Emit RateLimit-Policy and RateLimit draft fields. Default: true. */
   includeDraftFields?: boolean;
-  /** Emit widely deployed RateLimit-Limit/Remaining/Reset compatibility fields. Default: true. */
   includeLegacyFields?: boolean;
-  /** Emit Retry-After only when the request is blocked. Default: true. */
   includeRetryAfter?: boolean;
 }
 
 export class MemoryRateLimitStore implements RateLimitStore {
   private readonly entries = new Map<string, RateLimitStoreState>();
+  private operations = 0;
+
+  constructor(private readonly maxEntries = 10_000) {
+    if (!Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 1_000_000) {
+      throw new RangeError('maxEntries must be an integer between 1 and 1000000');
+    }
+  }
+
+  private sweepExpired(now: number): void {
+    for (const [candidate, state] of this.entries) {
+      if (state.resetAt <= now) this.entries.delete(candidate);
+    }
+  }
 
   consume(key: string, windowMs: number, now = Date.now()): RateLimitStoreState {
+    if (!Number.isInteger(windowMs) || windowMs < 1) throw new RangeError('windowMs must be a positive integer');
+    if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
+
+    this.operations += 1;
+    if (this.operations % 256 === 0 || this.entries.size >= this.maxEntries) this.sweepExpired(now);
+
     const current = this.entries.get(key);
-    if (!current || current.resetAt <= now) {
-      const state = { count: 1, resetAt: now + windowMs };
-      this.entries.set(key, state);
-      return { ...state };
+    if (current && current.resetAt > now) {
+      if (current.count < Number.MAX_SAFE_INTEGER) current.count += 1;
+      return { ...current };
     }
-    current.count += 1;
-    return { ...current };
+    if (current) this.entries.delete(key);
+
+    // Do not silently evict a live identity when the store is saturated: that
+    // would let high-cardinality traffic reset another client's rate-limit
+    // history. Saturate unknown identities instead until tracked windows expire.
+    if (this.entries.size >= this.maxEntries) {
+      return { count: Number.MAX_SAFE_INTEGER, resetAt: now + windowMs };
+    }
+
+    const state = { count: 1, resetAt: now + windowMs };
+    this.entries.set(key, state);
+    return { ...state };
   }
 
   clear(): void {
     this.entries.clear();
+    this.operations = 0;
   }
 }
 
@@ -62,7 +86,9 @@ export async function checkRateLimit(key: string, options: RateLimitOptions): Pr
   if (!Number.isFinite(now) || now < 0) throw new RangeError('now must be a non-negative finite timestamp');
 
   const state = await options.store.consume(key, options.windowMs, now);
-  if (!Number.isInteger(state.count) || state.count < 1 || !Number.isFinite(state.resetAt)) throw new Error('rate-limit store returned an invalid state');
+  if (!Number.isSafeInteger(state.count) || state.count < 1 || !Number.isFinite(state.resetAt) || state.resetAt < now) {
+    throw new Error('rate-limit store returned an invalid state');
+  }
   const allowed = state.count <= options.limit;
   return {
     ...state,
@@ -74,11 +100,6 @@ export async function checkRateLimit(key: string, options: RateLimitOptions): Pr
   };
 }
 
-/**
- * Convert a RateLimitResult into response headers without exposing the key
- * used to partition the limiter. Current IETF RateLimit fields are still a
- * draft, so compatibility fields can be emitted alongside them.
- */
 export function createRateLimitHeaders(result: RateLimitResult, options: RateLimitHeaderOptions = {}): Record<string, string> {
   if (!Number.isInteger(result.limit) || result.limit < 1) throw new Error('rate-limit result has an invalid limit');
   if (!Number.isInteger(result.remaining) || result.remaining < 0) throw new Error('rate-limit result has an invalid remaining count');

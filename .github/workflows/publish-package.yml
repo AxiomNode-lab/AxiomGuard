@@ -8,6 +8,7 @@ on:
       - package.json
       - package-lock.json
       - src/**
+      - scripts/verify-package.mjs
       - .github/workflows/publish-package.yml
   release:
     types: [published]
@@ -20,8 +21,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           registry-url: https://npm.pkg.github.com
@@ -30,7 +31,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: npm pack --dry-run
+      - run: npm run test:package
       - name: Verify release tag matches package version
         if: github.event_name == 'release'
         shell: bash
@@ -46,13 +47,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          if npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+          set +e
+          npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com >/tmp/axiomguard-view.out 2>/tmp/axiomguard-view.err
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 0 ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "Package ${VERSION} already exists; skipping publish."
-          else
+          elif grep -Eqi 'E404|404 Not Found' /tmp/axiomguard-view.err; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Package ${VERSION} is not present; publication is required."
+          else
+            echo "::error::Could not determine GitHub Packages version state. This is an authentication, permission, registry, or network failure rather than a confirmed missing version."
+            sed -E 's#(npm_[A-Za-z0-9]+|gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)#[REDACTED]#g' /tmp/axiomguard-view.err >&2
+            exit "$STATUS"
           fi
       - name: Publish to GitHub Packages
         if: steps.version.outputs.publish == 'true'
@@ -65,7 +76,7 @@ jobs:
           STATUS=${PIPESTATUS[0]}
           set -e
           if [ "$STATUS" -ne 0 ]; then
-            echo "::error::GitHub Packages publish failed. For a first organization package, verify Organization Settings > Packages > Package creation allows the intended package type/visibility and that this workflow retains packages: write permission."
+            echo "::error::GitHub Packages publish failed. Verify Organization Settings > Packages > Package creation and this workflow's packages: write permission."
             exit "$STATUS"
           fi
       - name: Verify package version in GitHub Packages

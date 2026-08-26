@@ -2,6 +2,8 @@
 
 The repository can be used directly as a composite GitHub Action. It scans the checked-out workspace and writes SARIF 2.1.0 without including matched credential values.
 
+> **Release status:** no immutable AxiomGuard Git tag has been published yet. The examples below use `@main` only for pre-release evaluation. For production, pin a published release tag or, preferably for maximum supply-chain stability, an immutable commit SHA after the first release is created.
+
 ```yaml
 name: AxiomGuard
 on:
@@ -19,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - id: axiomguard
-        uses: AxiomNode-lab/AxiomGuard@v0.5.0
+        uses: AxiomNode-lab/AxiomGuard@main
         with:
           path: .
           fail-on-findings: 'true'
@@ -59,7 +61,7 @@ For an existing repository with known findings, start in audit mode rather than 
 
 ```yaml
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@v0.5.0
+  uses: AxiomNode-lab/AxiomGuard@main
   with:
     path: .
     fail-on-findings: 'false'
@@ -67,3 +69,5 @@ For an existing repository with known findings, start in audit mode rather than 
 ```
 
 Review the results, create a baseline only for accepted existing findings, commit that baseline, then switch `fail-on-findings` back to `true`. Baselines use non-secret fingerprints; moved or newly introduced findings become visible again.
+
+After a release is published, replace `@main` with the release tag or immutable release commit SHA. Do not infer that a version string in `package.json` creates a usable GitHub Action tag; the Git ref must exist separately.

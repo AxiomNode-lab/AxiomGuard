@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here.
 
+## [0.5.1] - Unreleased
+
+### Security
+
+- Harden IPv6 SSRF classification for IPv4-mapped hex forms and conservative transition/tunneling prefixes.
+- Verify Stripe webhook signatures before revealing timestamp freshness.
+- Add GitHub delivery-ID replay protection for signed webhook deliveries.
+- Bound `MemoryRateLimitStore` and reduce full-map replay-store cleanup frequency under high-cardinality input.
+- Repair missing Redis rate-limit TTLs atomically and reject malformed/negative TTL results.
+- Validate environment defaults through the same type/range/allowlist constraints as supplied values.
+
+### Added
+
+- Clean-room tarball installation, root/subpath import, CLI and TypeScript declaration qualification.
+- Real Express 5, Fastify 5 and Hono 4 integration tests.
+- Real node-redis/ioredis integration tests against a Redis service in CI.
+- `THREAT_MODEL.md` and a CodeQL workflow.
+
+### Changed
+
+- Package version advanced to `0.5.1` because hardening changes follow the prepared `0.5.0` release line.
+- GitHub Packages and npmjs workflows fail closed when registry/auth/network failures cannot be distinguished from a missing version.
+
 ## [0.5.0] - 2026-08-25
 
 ### Added
