@@ -11,9 +11,11 @@ const subpaths = [
   'fetch',
   'filesystem',
   'headers',
+  'idempotency',
   'logging',
   'presets',
   'rate-limit',
+  'request-policy',
   'scanner',
   'web',
   'webhooks',
@@ -28,6 +30,10 @@ test('all documented package subpath exports resolve after build', async () => {
   const root = await import('@axiomnode-lab/guard');
   assert.equal(typeof root.secureToken, 'function');
   assert.equal(typeof root.safeFetch, 'function');
+  assert.equal(typeof root.evaluateRequestPolicy, 'function');
+  assert.equal(typeof root.claimIdempotencyKey, 'function');
+  assert.equal(typeof root.verifyMetaWebhook, 'function');
+  assert.equal(typeof root.verifySlackWebhook, 'function');
 
   for (const subpath of subpaths) {
     const module = await import(`@axiomnode-lab/guard/${subpath}`);
