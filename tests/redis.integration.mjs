@@ -3,13 +3,18 @@ import assert from 'node:assert/strict';
 import { createClient } from 'redis';
 import Redis from 'ioredis';
 import {
+  createIORedisIdempotencyStore,
   createIORedisRateLimitStore,
   createIORedisReplayStore,
+  createNodeRedisIdempotencyStore,
   createNodeRedisRateLimitStore,
   createNodeRedisReplayStore,
 } from '../dist/adapters/redis.js';
 
 const url = process.env.AXIOMGUARD_REDIS_URL ?? 'redis://127.0.0.1:6379';
+const keyHash = 'a'.repeat(64);
+const fingerprint = 'b'.repeat(64);
+const conflictingFingerprint = 'c'.repeat(64);
 
 test('node-redis adapters use Redis atomically with expiry', async () => {
   const client = createClient({ url });
@@ -28,6 +33,14 @@ test('node-redis adapters use Redis atomically with expiry', async () => {
     assert.equal(second.count, 2);
     const ttl = await client.pTTL('it:node:rate:client');
     assert.ok(ttl > 0 && ttl <= 5000);
+
+    const idempotency = createNodeRedisIdempotencyStore(client, 'it:node:idempotency:');
+    const idempotencyExpiry = Date.now() + 5000;
+    assert.equal(await idempotency.claim(keyHash, fingerprint, idempotencyExpiry), 'accepted');
+    assert.equal(await idempotency.claim(keyHash, fingerprint, idempotencyExpiry), 'replay');
+    assert.equal(await idempotency.claim(keyHash, conflictingFingerprint, idempotencyExpiry), 'conflict');
+    const idempotencyTtl = await client.pTTL(`it:node:idempotency:${keyHash}`);
+    assert.ok(idempotencyTtl > 0 && idempotencyTtl <= 5000);
   } finally {
     await client.quit();
   }
@@ -50,6 +63,14 @@ test('ioredis adapters use Redis atomically with expiry', async () => {
     assert.equal(second.count, 2);
     const ttl = await client.pttl('it:io:rate:client');
     assert.ok(ttl > 0 && ttl <= 5000);
+
+    const idempotency = createIORedisIdempotencyStore(client, 'it:io:idempotency:');
+    const idempotencyExpiry = Date.now() + 5000;
+    assert.equal(await idempotency.claim(keyHash, fingerprint, idempotencyExpiry), 'accepted');
+    assert.equal(await idempotency.claim(keyHash, fingerprint, idempotencyExpiry), 'replay');
+    assert.equal(await idempotency.claim(keyHash, conflictingFingerprint, idempotencyExpiry), 'conflict');
+    const idempotencyTtl = await client.pttl(`it:io:idempotency:${keyHash}`);
+    assert.ok(idempotencyTtl > 0 && idempotencyTtl <= 5000);
   } finally {
     await client.quit();
   }
