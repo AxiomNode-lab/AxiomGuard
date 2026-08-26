@@ -3,7 +3,7 @@
 
   <h1>AxiomGuard</h1>
   <p><strong>Security building blocks for Node.js and TypeScript services.</strong></p>
-  <p>Zero runtime dependencies · modular imports · guarded outbound fetches · framework adapters · SARIF-ready scanning</p>
+  <p>Zero runtime dependencies · request policy · idempotency · guarded outbound fetches · provider webhooks · framework adapters · SARIF-ready scanning</p>
 
   [![CI](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/AxiomNode-lab/AxiomGuard/actions/workflows/ci.yml)
   [![GitHub package](https://img.shields.io/badge/GitHub%20Packages-%40axiomnode--lab%2Fguard-181717?logo=github)](https://github.com/orgs/AxiomNode-lab/packages)
@@ -12,11 +12,11 @@
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 </div>
 
-AxiomGuard collects backend security controls that are easy to rewrite badly and annoying to install as a dozen unrelated packages: API keys, webhook verification, replay protection, secure cookies, CSRF tokens, CORS policy, defensive headers, SSRF-oriented URL checks and outbound fetches, rate limiting, environment validation, secret-safe logging, path safety and repository scanning.
+AxiomGuard collects backend security controls that are easy to rewrite badly and annoying to install as a dozen unrelated packages: API keys, signed webhooks, replay protection, browser request policy, idempotency claims, secure cookies, CSRF tokens, CORS policy, defensive headers, SSRF-oriented URL checks and outbound fetches, rate limiting, environment validation, secret-safe logging, path safety and repository scanning.
 
 It stays intentionally small. Core and adapters have **no runtime npm dependencies**, and security assumptions are documented next to the feature instead of hidden behind a generic “secure by default” claim.
 
-> **Release status:** the source is being qualified for the `0.5.1` release line. A GitHub Release/tag and the public npmjs package are not considered available until they are independently verified after publication. See [docs/RELEASE.md](docs/RELEASE.md).
+> **Release status:** the source version is `0.6.0`. Registry, container and GitHub Release availability are verified independently after publication; source version alone is not treated as proof that an artifact exists. See [docs/RELEASE.md](docs/RELEASE.md).
 
 ## Install
 
@@ -36,7 +36,7 @@ npm install @axiomnode-lab/guard
 
 ### npmjs
 
-The intended lowest-friction public install path is npmjs. **Do not assume it is live until the release checklist verifies the registry entry.** Once published and verified, installation will be the normal command without a custom registry:
+The intended lowest-friction public install path is npmjs. **Do not assume it is live until the release checklist verifies the registry entry.** Once published and verified, installation is the normal command without a custom registry:
 
 ```bash
 npm install @axiomnode-lab/guard
@@ -49,7 +49,9 @@ Normal npmjs releases are designed to use npm Trusted Publishing/OIDC rather tha
 | Import | Purpose |
 | --- | --- |
 | `/api-keys` | High-entropy API keys, digests, verification and masking |
-| `/webhooks` | Generic HMAC, GitHub/Stripe verification and replay-store helpers |
+| `/webhooks` | Generic HMAC plus GitHub, Meta/WhatsApp, Slack and Stripe verification/replay helpers |
+| `/request-policy` | Fetch-Metadata/Origin policy for unsafe browser requests |
+| `/idempotency` | Request fingerprints and bounded/atomic idempotency-key claims |
 | `/cookies` | Secure cookie serialization and prefix invariants |
 | `/cors` | Strict framework-neutral origin/preflight policy |
 | `/csrf` | Signed, expiring, optionally session-bound CSRF tokens |
@@ -67,16 +69,79 @@ Normal npmjs releases are designed to use npm Trusted Publishing/OIDC rather tha
 
 Use the root export for convenience or subpath imports for a smaller, clearer dependency surface.
 
+## Quick start: browser-facing API
+
+The framework adapters can combine defensive headers, CORS and the opt-in browser request policy. Request policy uses Fetch Metadata first for unsafe methods and falls back to exact Origin verification.
+
+```ts
+import { createExpressSecurityMiddleware } from '@axiomnode-lab/guard/adapters/express';
+
+app.use(createExpressSecurityMiddleware({
+  cors: {
+    origins: ['https://app.example.com'],
+    allowCredentials: true,
+    allowMethods: ['GET', 'POST', 'PATCH'],
+  },
+  requestPolicy: {
+    allowedOrigins: ['https://app.example.com'],
+  },
+}));
+```
+
+`requestPolicy` is disabled unless configured, so machine-to-machine APIs are not silently broken. For unsafe methods it rejects `cross-site`, `Origin: null`, untrusted origins and origin-less traffic by default. `same-site` is not treated as equivalent to `same-origin` unless explicitly allowed.
+
+See [docs/API_PROTECTION.md](docs/API_PROTECTION.md) for browser compatibility, machine-client guidance and failure boundaries.
+
+## Idempotency claims
+
+AxiomGuard can bind an idempotency key to the request semantics that first claimed it. Reusing the same key with the same fingerprint is a replay; reusing it with different semantics is a conflict.
+
+```ts
+import {
+  MemoryIdempotencyStore,
+  claimIdempotencyKey,
+  createIdempotencyFingerprint,
+} from '@axiomnode-lab/guard/idempotency';
+
+const store = new MemoryIdempotencyStore();
+const fingerprint = createIdempotencyFingerprint({
+  method: req.method,
+  target: req.url,
+  contentType: req.headers['content-type'],
+  body: rawBody,
+});
+
+const status = await claimIdempotencyKey(
+  req.headers['idempotency-key'],
+  fingerprint,
+  { store, ttlMs: 86_400_000 },
+);
+```
+
+The memory store is bounded and fails closed at live capacity rather than evicting a still-valid claim. node-redis and ioredis adapters provide atomic Lua-backed claims for multi-instance services.
+
+This primitive stores the request claim, **not the application response or database transaction result**. Full response replay still requires durable application-specific storage and transaction semantics. See [docs/API_PROTECTION.md](docs/API_PROTECTION.md).
+
 ## Provider-aware webhooks
+
+Always verify provider signatures against the exact raw request body.
 
 ```ts
 import {
   MemoryReplayStore,
   verifyGitHubWebhookDelivery,
+  verifyMetaWebhook,
+  verifySlackWebhook,
   verifyStripeWebhook,
 } from '@axiomnode-lab/guard/webhooks';
 
 const replayStore = new MemoryReplayStore();
+
+const metaOk = verifyMetaWebhook(
+  rawBody,
+  req.headers['x-hub-signature-256'],
+  process.env.META_APP_SECRET!,
+);
 
 const githubResult = await verifyGitHubWebhookDelivery(
   rawBody,
@@ -90,18 +155,25 @@ const stripeResult = await verifyStripeWebhook(
   rawBody,
   req.headers['stripe-signature'],
   process.env.STRIPE_WEBHOOK_SECRET!,
-  {
-    toleranceSeconds: 300,
-    replayStore,
-  },
+  { toleranceSeconds: 300, replayStore },
+);
+
+const slackResult = await verifySlackWebhook(
+  rawBody,
+  req.headers['x-slack-signature'],
+  req.headers['x-slack-request-timestamp'],
+  process.env.SLACK_SIGNING_SECRET!,
+  { toleranceSeconds: 300, replayStore },
 );
 ```
 
-For multiple service instances, replace in-memory replay state with a shared store. AxiomGuard includes node-redis and ioredis adapters that use atomic `NX` + `PX` claims. GitHub delivery replay protection is additive because GitHub's HMAC signature itself does not carry a freshness timestamp.
+Stripe and Slack verification bind the provider timestamp into the signed bytes and enforce freshness after signature validation. GitHub delivery replay protection uses `X-GitHub-Delivery`. Meta signature verification intentionally does not invent a provider-independent event ID; product-specific event deduplication remains an application concern.
+
+For multiple service instances, replace in-memory replay state with a shared Redis store.
 
 ## Express, Fastify and Hono
 
-Adapters combine AxiomGuard's header and CORS primitives without taking a runtime dependency on the framework.
+Adapters have no runtime framework dependency. CI qualifies them against pinned real Express 5, Fastify 5 and Hono 4 versions in addition to structural tests.
 
 ```ts
 import { createExpressSecurityMiddleware } from '@axiomnode-lab/guard/adapters/express';
@@ -115,7 +187,7 @@ app.use(createExpressSecurityMiddleware({
 }));
 ```
 
-Equivalent adapters are available for Fastify and Hono. CI qualifies the adapters against pinned real framework versions in addition to structural unit tests. See [docs/ADAPTERS.md](docs/ADAPTERS.md).
+Equivalent adapters are available for Fastify and Hono. See [docs/ADAPTERS.md](docs/ADAPTERS.md).
 
 ## Rate limiting
 
@@ -133,20 +205,18 @@ const result = await checkRateLimit(`ip:${clientIp}`, {
   store,
 });
 
-const headers = createRateLimitHeaders(result, {
-  policyName: 'api',
-});
+const headers = createRateLimitHeaders(result, { policyName: 'api' });
 
 if (!result.allowed) {
   // Return 429 and include the generated Retry-After/RateLimit fields.
 }
 ```
 
-The helper can emit the current IETF draft `RateLimit-Policy`/`RateLimit` fields together with compatibility fields. The memory store is bounded and single-process; sustained high-cardinality traffic can evict old entries, so distributed or high-volume deployments should use the Redis adapters.
+The helper can emit the current draft `RateLimit-Policy`/`RateLimit` fields together with compatibility fields. The memory store is bounded and single-process; distributed or high-volume deployments should use the Redis adapters.
 
 ## Security-header presets
 
-Presets are opt-in and deployment-conscious. HSTS is not silently enabled because it is a deployment commitment; cross-origin isolation is a separate preset because it can break resources that are not prepared for it.
+Presets are opt-in and deployment-conscious. HSTS is not silently enabled because it is a deployment commitment; cross-origin isolation is separate because it can break resources that are not prepared for it.
 
 ```ts
 import { createPresetSecurityHeaders } from '@axiomnode-lab/guard/presets';
@@ -209,7 +279,7 @@ The validator rejects common private, loopback, link-local, multicast, reserved/
 
 ## Guarded outbound fetches
 
-`safeFetch()` turns the URL checks into a practical outbound-request primitive. It validates the initial target and every followed redirect, limits redirect depth, applies a total timeout, strips sensitive credentials on cross-origin redirects, and refuses transport-header overrides and unsafe body replay.
+`safeFetch()` validates the initial target and every followed redirect, limits redirect depth, applies a total timeout, strips sensitive credentials on cross-origin redirects, and refuses transport-header overrides and unsafe body replay.
 
 ```ts
 import { safeFetch } from '@axiomnode-lab/guard/fetch';
@@ -247,7 +317,7 @@ const sarif = findingsToSarif(findings);
 
 ## GitHub Action
 
-No immutable release tag exists yet, so pre-release evaluation uses `main`:
+Until a release tag is independently verified, pre-release evaluation can use `main`:
 
 ```yaml
 - uses: actions/checkout@v6
@@ -258,7 +328,7 @@ No immutable release tag exists yet, so pre-release evaluation uses `main`:
     fail-on-findings: 'true'
 ```
 
-For production, replace `@main` with a published release tag or immutable release commit SHA after the first GitHub Release is verified. The action exposes a SARIF path that can be uploaded with `github/codeql-action/upload-sarif@v4`. Full workflow: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
+For production, use a published release tag or immutable release commit SHA after verification. The action exposes a SARIF path that can be uploaded with `github/codeql-action/upload-sarif@v4`. Full workflow: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
 ## Container
 
@@ -293,6 +363,7 @@ Publication is considered successful only after the workflow reads the exact ver
 - a WAF, secrets manager, identity provider or authorization framework
 - Argon2/scrypt/bcrypt password hashing
 - egress firewalling, cloud metadata protection, or destination-pinned networking
+- durable transaction/result storage for fully replayable idempotent APIs
 - a dedicated distributed abuse-prevention platform
 - a complete SAST or secrets-scanning platform
 - a security review of the application using it
@@ -313,7 +384,7 @@ npm pack --dry-run
 npm run scan:self
 ```
 
-Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [THREAT_MODEL.md](THREAT_MODEL.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), [docs/SCANNER.md](docs/SCANNER.md), [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
+Read [RESEARCH.md](RESEARCH.md), [SECURITY.md](SECURITY.md), [THREAT_MODEL.md](THREAT_MODEL.md), [docs/API_PROTECTION.md](docs/API_PROTECTION.md), [docs/ADAPTERS.md](docs/ADAPTERS.md), [docs/SCANNER.md](docs/SCANNER.md), [docs/SAFE_FETCH.md](docs/SAFE_FETCH.md), and [docs/RELEASE.md](docs/RELEASE.md) before changing security-sensitive behavior.
 
 ## Contributing
 

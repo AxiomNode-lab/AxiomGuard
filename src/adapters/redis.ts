@@ -1,3 +1,4 @@
+import type { IdempotencyClaimStatus, IdempotencyStore } from '../idempotency.js';
 import type { RateLimitStore, RateLimitStoreState } from '../rate-limit.js';
 import type { ReplayStore } from '../webhooks.js';
 
@@ -8,7 +9,7 @@ export interface NodeRedisLike {
 
 export interface IORedisLike {
   set(key: string, value: string, mode: 'PX', ttlMs: number, condition: 'NX'): Promise<string | null> | string | null;
-  eval(script: string, numberOfKeys: number, key: string, windowMs: string): Promise<unknown> | unknown;
+  eval(script: string, numberOfKeys: number, ...args: string[]): Promise<unknown> | unknown;
 }
 
 const RATE_LIMIT_SCRIPT = `local current = redis.call('INCR', KEYS[1])
@@ -18,6 +19,19 @@ if current == 1 or ttl < 0 then
   ttl = tonumber(ARGV[1])
 end
 return {current, ttl}`;
+
+const IDEMPOTENCY_SCRIPT = `local existing = redis.call('GET', KEYS[1])
+if existing then
+  if existing == ARGV[1] then return 0 end
+  return 1
+end
+local claimed = redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2], 'NX')
+if claimed then return 2 end
+local after = redis.call('GET', KEYS[1])
+if after == ARGV[1] then return 0 end
+return 1`;
+
+const SHA256_HEX = /^[a-f0-9]{64}$/;
 
 function ttlFromExpiry(expiresAt: number, now: number): number {
   if (!Number.isFinite(expiresAt)) throw new RangeError('expiresAt must be finite');
@@ -33,6 +47,20 @@ function parseRateState(raw: unknown, now: number): RateLimitStoreState {
     throw new Error('Redis rate-limit script returned invalid counters');
   }
   return { count, resetAt: now + ttl };
+}
+
+function parseIdempotencyStatus(raw: unknown): IdempotencyClaimStatus {
+  const value = Number(String(raw));
+  if (value === 0) return 'replay';
+  if (value === 1) return 'conflict';
+  if (value === 2) return 'accepted';
+  throw new Error('Redis idempotency script returned an invalid result');
+}
+
+function validateIdempotencyInput(keyHash: string, fingerprint: string, ttl: number): void {
+  if (!SHA256_HEX.test(keyHash)) throw new TypeError('keyHash must be a lowercase SHA-256 hex digest');
+  if (!SHA256_HEX.test(fingerprint)) throw new TypeError('fingerprint must be a lowercase SHA-256 hex digest');
+  if (ttl <= 0) throw new RangeError('expiresAt must be in the future');
 }
 
 function keyWithPrefix(prefix: string, key: string): string {
@@ -80,6 +108,31 @@ export function createIORedisRateLimitStore(client: IORedisLike, prefix = 'axiom
       validateWindow(windowMs, now);
       const raw = await client.eval(RATE_LIMIT_SCRIPT, 1, keyWithPrefix(prefix, key), String(windowMs));
       return parseRateState(raw, now);
+    },
+  };
+}
+
+export function createNodeRedisIdempotencyStore(client: NodeRedisLike, prefix = 'axiomguard:idempotency:'): IdempotencyStore {
+  return {
+    async claim(keyHash: string, fingerprint: string, expiresAt: number, now = Date.now()): Promise<IdempotencyClaimStatus> {
+      const ttl = ttlFromExpiry(expiresAt, now);
+      validateIdempotencyInput(keyHash, fingerprint, ttl);
+      const raw = await client.eval(IDEMPOTENCY_SCRIPT, {
+        keys: [keyWithPrefix(prefix, keyHash)],
+        arguments: [fingerprint, String(ttl)],
+      });
+      return parseIdempotencyStatus(raw);
+    },
+  };
+}
+
+export function createIORedisIdempotencyStore(client: IORedisLike, prefix = 'axiomguard:idempotency:'): IdempotencyStore {
+  return {
+    async claim(keyHash: string, fingerprint: string, expiresAt: number, now = Date.now()): Promise<IdempotencyClaimStatus> {
+      const ttl = ttlFromExpiry(expiresAt, now);
+      validateIdempotencyInput(keyHash, fingerprint, ttl);
+      const raw = await client.eval(IDEMPOTENCY_SCRIPT, 1, keyWithPrefix(prefix, keyHash), fingerprint, String(ttl));
+      return parseIdempotencyStatus(raw);
     },
   };
 }

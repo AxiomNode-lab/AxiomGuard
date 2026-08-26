@@ -67,6 +67,24 @@ test('Stripe verifier authenticates before revealing timestamp freshness', async
   assert.deepEqual(await verifyStripeWebhook(payload, `t=${staleTimestamp},v1=${valid}`, 'whsec_test', { now: 1_800_000_000_000 }), { ok: false, reason: 'stale-timestamp' });
 });
 
+test('Stripe replay identity cannot be changed by reordering or adding valid v1 fields', async () => {
+  const payload = '{"id":"evt_current"}';
+  const secret = 'whsec_test';
+  const now = 1_800_000_000_000;
+  const timestamp = Math.floor(now / 1000);
+  const valid = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
+  const store = new MemoryReplayStore();
+
+  assert.deepEqual(
+    await verifyStripeWebhook(payload, `t=${timestamp},v1=${valid}`, secret, { now, replayStore: store }),
+    { ok: true },
+  );
+  assert.deepEqual(
+    await verifyStripeWebhook(payload, `v1=${'0'.repeat(64)},t=${timestamp},v1=${valid}`, secret, { now: now + 1, replayStore: store }),
+    { ok: false, reason: 'replay' },
+  );
+});
+
 test('webhook replay stores honor an injected verifier clock', async () => {
   const now = 1_000_000;
   const timestamp = Math.floor(now / 1000);

@@ -1,4 +1,4 @@
-import { adapterCorsHeaders, adapterSecurityHeaders, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
+import { adapterCorsHeaders, adapterRequestPolicy, adapterSecurityHeaders, blockedRequestStatus, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
 
 export interface FastifyLikeRequest {
   method?: string;
@@ -23,12 +23,20 @@ export type FastifySecurityHook = (request: FastifyLikeRequest, reply: FastifyLi
 export function createFastifySecurityHook(options: SecurityAdapterOptions = {}): FastifySecurityHook {
   const securityHeaders = adapterSecurityHeaders(options);
   const status = preflightStatus(options);
+  const deniedStatus = blockedRequestStatus(options);
   return async (request, reply) => {
     for (const [name, value] of Object.entries(securityHeaders)) reply.header(name, value);
     const origin = normalizeHeaderValue(request.headers.origin);
     const corsHeaders = adapterCorsHeaders(origin, options);
     if (corsHeaders) for (const [name, value] of Object.entries(corsHeaders)) reply.header(name, value);
     if (shouldHandlePreflight(request.method, corsHeaders, options)) return reply.code(status).send();
+
+    const decision = adapterRequestPolicy({
+      method: request.method ?? '',
+      origin: origin ?? null,
+      secFetchSite: normalizeHeaderValue(request.headers['sec-fetch-site']) ?? null,
+    }, options);
+    if (decision && !decision.allowed) return reply.code(deniedStatus).send();
     return undefined;
   };
 }

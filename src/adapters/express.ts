@@ -1,4 +1,4 @@
-import { adapterCorsHeaders, adapterSecurityHeaders, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
+import { adapterCorsHeaders, adapterRequestPolicy, adapterSecurityHeaders, blockedRequestStatus, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
 
 export interface ExpressLikeRequest {
   method?: string;
@@ -17,6 +17,7 @@ export type ExpressSecurityMiddleware = (request: ExpressLikeRequest, response: 
 export function createExpressSecurityMiddleware(options: SecurityAdapterOptions = {}): ExpressSecurityMiddleware {
   const securityHeaders = adapterSecurityHeaders(options);
   const status = preflightStatus(options);
+  const deniedStatus = blockedRequestStatus(options);
   return (request, response, next) => {
     for (const [name, value] of Object.entries(securityHeaders)) response.setHeader(name, value);
     const origin = normalizeHeaderValue(request.headers.origin);
@@ -24,6 +25,17 @@ export function createExpressSecurityMiddleware(options: SecurityAdapterOptions 
     if (corsHeaders) for (const [name, value] of Object.entries(corsHeaders)) response.setHeader(name, value);
     if (shouldHandlePreflight(request.method, corsHeaders, options)) {
       response.statusCode = status;
+      response.end();
+      return;
+    }
+
+    const decision = adapterRequestPolicy({
+      method: request.method ?? '',
+      origin: origin ?? null,
+      secFetchSite: normalizeHeaderValue(request.headers['sec-fetch-site']) ?? null,
+    }, options);
+    if (decision && !decision.allowed) {
+      response.statusCode = deniedStatus;
       response.end();
       return;
     }
