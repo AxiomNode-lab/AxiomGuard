@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [0.6.2] - 2026-08-27
+
+### Changed
+
+- Refresh the public package presentation with the current user-facing README and package metadata.
+- Remove release-process and internal qualification details from the README distributed with the package.
+- No runtime API or security-control behavior changed in this patch.
+
 ## [0.6.1] - 2026-08-26
 
 ### Fixed
