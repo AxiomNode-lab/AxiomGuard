@@ -129,33 +129,41 @@ test('memory idempotency store fails closed at live capacity', async () => {
   assert.equal(store.size, 1);
 });
 
-test('idempotency keys normalize quoted values and are hashed before storage', () => {
+test('idempotency keys normalize quoted values and reject ambiguous quoting', () => {
   assert.equal(normalizeIdempotencyKey(' "job-123" '), 'job-123');
   assert.equal(normalizeIdempotencyKey('"job\\"123"'), 'job"123');
   assert.match(createIdempotencyStoreKey('job-123'), /^[a-f0-9]{64}$/);
   assert.throws(() => normalizeIdempotencyKey('bad\nkey'), /visible ASCII/);
+  assert.throws(() => normalizeIdempotencyKey('"job"123"'), /Unescaped quote/);
 });
 
-test('Meta webhook verification validates X-Hub-Signature-256', () => {
+test('Meta webhook verification validates the required X-Hub-Signature-256 shape', () => {
   const body = Buffer.from('{"object":"whatsapp_business_account"}');
   const secret = 'meta-app-secret';
-  const signature = `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
+  const digest = createHmac('sha256', secret).update(body).digest('hex');
+  const signature = `sha256=${digest}`;
   const replacement = signature.endsWith('0') ? '1' : '0';
   const wrongSignature = `${signature.slice(0, -1)}${replacement}`;
   assert.equal(verifyMetaWebhook(body, signature, secret), true);
+  assert.equal(verifyMetaWebhook(body, digest, secret), false, 'provider helper requires sha256= prefix');
   assert.equal(verifyMetaWebhook(body, wrongSignature, secret), false);
 });
 
-test('Slack webhook verification binds timestamp, freshness and canonical replay state', async () => {
+test('Slack webhook verification binds timestamp, prefix, freshness and canonical replay state', async () => {
   const body = Buffer.from('token=ignored&command=%2Fhello');
   const secret = 'slack-signing-secret';
   const now = 1_800_000_000_000;
   const timestamp = Math.floor(now / 1000);
   const signed = Buffer.concat([Buffer.from(`v0:${timestamp}:`), body]);
-  const signature = `v0=${createHmac('sha256', secret).update(signed).digest('hex')}`;
-  const uppercaseSignature = `v0=${signature.slice(3).toUpperCase()}`;
+  const digest = createHmac('sha256', secret).update(signed).digest('hex');
+  const signature = `v0=${digest}`;
+  const uppercaseSignature = `v0=${digest.toUpperCase()}`;
   const replayStore = new MemoryReplayStore();
 
+  assert.deepEqual(
+    await verifySlackWebhook(body, digest, timestamp, secret, { now }),
+    { ok: false, reason: 'invalid-signature' },
+  );
   assert.deepEqual(
     await verifySlackWebhook(body, signature, timestamp, secret, { now, replayStore }),
     { ok: true },
