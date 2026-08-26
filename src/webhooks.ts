@@ -24,9 +24,6 @@ export class MemoryReplayStore implements ReplayStore {
     if (existing !== undefined && existing > now) return false;
     if (existing !== undefined) this.entries.delete(key);
 
-    // Replay protection must fail closed at capacity. Evicting a live claim
-    // would make that event replayable again under attacker-controlled
-    // high-cardinality traffic.
     if (this.entries.size >= this.maxEntries) return false;
 
     this.entries.set(key, expiresAt);
@@ -77,6 +74,7 @@ export function verifyGitHubWebhook(payload: string | Buffer, signature: string 
 
 /** Verify Meta/WhatsApp-style X-Hub-Signature-256 against the raw request body. */
 export function verifyMetaWebhook(payload: string | Buffer, signature: string | undefined | null, appSecret: string): boolean {
+  if (!signature?.startsWith('sha256=')) return false;
   return verifyHmacWebhook(payload, signature, appSecret, { algorithm: 'sha256', prefix: 'sha256=' });
 }
 
@@ -141,8 +139,6 @@ export async function verifyStripeWebhook(payload: string | Buffer, signatureHea
   const now = resolveNow(options.now);
   if (Math.abs(now - parsed.timestamp * 1000) > tolerance * 1000) return { ok: false, reason: 'stale-timestamp' };
   if (options.replayStore) {
-    // Derive replay identity from the verified canonical signature rather than
-    // caller-controlled header ordering or extra v1 fields.
     const key = createHash('sha256')
       .update(`stripe\0${parsed.timestamp}\0${expected.toString('hex')}`, 'utf8')
       .digest('hex');
@@ -160,6 +156,7 @@ export async function verifySlackWebhook(
   options: VerifySlackWebhookOptions = {},
 ): Promise<FreshWebhookResult> {
   if (timestamp === undefined || timestamp === null || timestamp === '') return { ok: false, reason: 'invalid-timestamp' };
+  if (!signature?.startsWith('v0=')) return { ok: false, reason: 'invalid-signature' };
   const rawTimestamp = String(timestamp);
   const body = Buffer.isBuffer(payload) ? payload : Buffer.from(payload, 'utf8');
   const signed = Buffer.concat([Buffer.from(`v0:${rawTimestamp}:`, 'utf8'), body]);
