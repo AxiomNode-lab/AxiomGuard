@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "A zero-runtime-dependency security SDK for Node.js: webhooks, request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -31,7 +31,7 @@
     "./adapters/hono": { "types": "./dist/adapters/hono.d.ts", "import": "./dist/adapters/hono.js" },
     "./adapters/redis": { "types": "./dist/adapters/redis.d.ts", "import": "./dist/adapters/redis.js" }
   },
-  "bin": { "axiomguard": "./dist/cli.js" },
+  "bin": { "axiomguard": "dist/cli.js" },
   "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "THREAT_MODEL.md", "RESEARCH.md", "docs"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
