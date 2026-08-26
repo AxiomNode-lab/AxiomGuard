@@ -52,15 +52,32 @@ export interface VerifyGitHubWebhookDeliveryOptions {
   now?: number;
 }
 
+export interface VerifySlackWebhookOptions {
+  toleranceSeconds?: number;
+  now?: number;
+  replayStore?: ReplayStore;
+}
+
 function resolveNow(now: number | undefined): number {
   const value = now ?? Date.now();
   if (!Number.isFinite(value) || value < 0) throw new RangeError('now must be a non-negative finite timestamp');
   return value;
 }
 
+function resolveTolerance(toleranceSeconds: number | undefined): number {
+  const tolerance = toleranceSeconds ?? 300;
+  if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 86_400) throw new RangeError('toleranceSeconds must be >0 and <=86400');
+  return tolerance;
+}
+
 export function createWebhookReplayKey(signature: string): string { return createHash('sha256').update(signature, 'utf8').digest('hex'); }
 export function verifyGitHubWebhook(payload: string | Buffer, signature: string | undefined | null, secret: string): boolean {
   return verifyHmacWebhook(payload, signature, secret, { algorithm: 'sha256', prefix: 'sha256=' });
+}
+
+/** Verify Meta/WhatsApp-style X-Hub-Signature-256 against the raw request body. */
+export function verifyMetaWebhook(payload: string | Buffer, signature: string | undefined | null, appSecret: string): boolean {
+  return verifyHmacWebhook(payload, signature, appSecret, { algorithm: 'sha256', prefix: 'sha256=' });
 }
 
 export async function verifyGitHubWebhookDelivery(
@@ -84,8 +101,7 @@ export async function verifyFreshHmacWebhook(input: VerifyFreshHmacWebhookInput,
   if (!verifyHmacWebhook(input.payload, input.signature, input.secret, options)) return { ok: false, reason: 'invalid-signature' };
   const timestamp = typeof input.timestamp === 'number' ? input.timestamp : Number(input.timestamp);
   if (!Number.isFinite(timestamp) || timestamp <= 0) return { ok: false, reason: 'invalid-timestamp' };
-  const toleranceSeconds = options.toleranceSeconds ?? 300;
-  if (!Number.isFinite(toleranceSeconds) || toleranceSeconds <= 0 || toleranceSeconds > 86_400) throw new RangeError('toleranceSeconds must be >0 and <=86400');
+  const toleranceSeconds = resolveTolerance(options.toleranceSeconds);
   const now = resolveNow(options.now);
   if (Math.abs(now - timestamp * 1000) > toleranceSeconds * 1000) return { ok: false, reason: 'stale-timestamp' };
   if (options.replayStore) {
@@ -111,8 +127,7 @@ export async function verifyStripeWebhook(payload: string | Buffer, signatureHea
   if (!signatureHeader || !secret) return { ok: false, reason: 'invalid-signature' };
   const parsed = parseStripeSignature(signatureHeader);
   if (!parsed) return { ok: false, reason: 'invalid-signature' };
-  const tolerance = options.toleranceSeconds ?? 300;
-  if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 86_400) throw new RangeError('toleranceSeconds must be >0 and <=86400');
+  const tolerance = resolveTolerance(options.toleranceSeconds);
 
   const body = Buffer.isBuffer(payload) ? payload : Buffer.from(payload, 'utf8');
   const signed = Buffer.concat([Buffer.from(`${parsed.timestamp}.`, 'utf8'), body]);
@@ -128,6 +143,35 @@ export async function verifyStripeWebhook(payload: string | Buffer, signatureHea
   if (options.replayStore) {
     const key = createWebhookReplayKey(signatureHeader);
     if (!await options.replayStore.claim(key, now + tolerance * 1000, now)) return { ok: false, reason: 'replay' };
+  }
+  return { ok: true };
+}
+
+/** Verify Slack's v0 signature, signed timestamp freshness and optional replay claim. */
+export async function verifySlackWebhook(
+  payload: string | Buffer,
+  signature: string | undefined | null,
+  timestamp: string | number | undefined | null,
+  signingSecret: string,
+  options: VerifySlackWebhookOptions = {},
+): Promise<FreshWebhookResult> {
+  if (timestamp === undefined || timestamp === null || timestamp === '') return { ok: false, reason: 'invalid-timestamp' };
+  const rawTimestamp = String(timestamp);
+  const body = Buffer.isBuffer(payload) ? payload : Buffer.from(payload, 'utf8');
+  const signed = Buffer.concat([Buffer.from(`v0:${rawTimestamp}:`, 'utf8'), body]);
+  if (!verifyHmacWebhook(signed, signature, signingSecret, { algorithm: 'sha256', prefix: 'v0=' })) {
+    return { ok: false, reason: 'invalid-signature' };
+  }
+
+  const parsedTimestamp = Number(rawTimestamp);
+  if (!Number.isSafeInteger(parsedTimestamp) || parsedTimestamp <= 0) return { ok: false, reason: 'invalid-timestamp' };
+  const tolerance = resolveTolerance(options.toleranceSeconds);
+  const now = resolveNow(options.now);
+  if (Math.abs(now - parsedTimestamp * 1000) > tolerance * 1000) return { ok: false, reason: 'stale-timestamp' };
+
+  if (options.replayStore) {
+    const replayKey = createHash('sha256').update(`slack-signature\0${signature ?? ''}`, 'utf8').digest('hex');
+    if (!await options.replayStore.claim(replayKey, now + tolerance * 1000, now)) return { ok: false, reason: 'replay' };
   }
   return { ok: true };
 }
