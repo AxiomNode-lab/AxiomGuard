@@ -32,7 +32,7 @@
     "./adapters/redis": { "types": "./dist/adapters/redis.d.ts", "import": "./dist/adapters/redis.js" }
   },
   "bin": { "axiomguard": "./dist/cli.js" },
-  "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "THREAT_MODEL.md", "RESEARCH.md", "docs/API_PROTECTION.md", "docs/SCANNER.md", "docs/PACKAGES.md", "docs/SAFE_FETCH.md"],
+  "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "THREAT_MODEL.md", "RESEARCH.md", "docs"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
