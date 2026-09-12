@@ -20,9 +20,15 @@ interface MemoryIdempotencyEntry {
   expiresAt: number;
 }
 
+/**
+ * Bounded single-process claim store. It fails closed with `capacity` rather
+ * than evicting a live claim. Multi-instance deployments must use a shared
+ * store such as the Redis adapters.
+ */
 export class MemoryIdempotencyStore implements IdempotencyStore {
   private readonly entries = new Map<string, MemoryIdempotencyEntry>();
   private operations = 0;
+  private nextExpiry = Number.POSITIVE_INFINITY;
 
   constructor(private readonly maxEntries = 10_000) {
     if (!Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 1_000_000) {
@@ -30,16 +36,21 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     }
   }
 
-  private sweepExpired(now: number): void {
+  protected sweepExpired(now: number): void {
+    let next = Number.POSITIVE_INFINITY;
     for (const [key, entry] of this.entries) {
       if (entry.expiresAt <= now) this.entries.delete(key);
+      else if (entry.expiresAt < next) next = entry.expiresAt;
     }
+    this.nextExpiry = next;
   }
 
   claim(keyHash: string, fingerprint: string, expiresAt: number, now = Date.now()): IdempotencyClaimStatus {
     validateStoreInputs(keyHash, fingerprint, expiresAt, now);
     this.operations += 1;
-    if (this.operations % 256 === 0 || this.entries.size >= this.maxEntries) this.sweepExpired(now);
+    // Sweeping is O(n); only do it when at least one entry can have expired so
+    // a saturated store does not scan everything on every claim.
+    if ((this.operations % 256 === 0 || this.entries.size >= this.maxEntries) && this.nextExpiry <= now) this.sweepExpired(now);
 
     const existing = this.entries.get(keyHash);
     if (existing && existing.expiresAt > now) {
@@ -53,12 +64,14 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     if (this.entries.size >= this.maxEntries) return 'capacity';
 
     this.entries.set(keyHash, { fingerprint, expiresAt });
+    if (expiresAt < this.nextExpiry) this.nextExpiry = expiresAt;
     return 'accepted';
   }
 
   clear(): void {
     this.entries.clear();
     this.operations = 0;
+    this.nextExpiry = Number.POSITIVE_INFINITY;
   }
 
   get size(): number {
@@ -75,9 +88,19 @@ export interface IdempotencyFingerprintInput {
 
 export interface ClaimIdempotencyKeyOptions {
   store: IdempotencyStore;
+  /** Claim lifetime. Default: 24 hours. */
   ttlMs?: number;
   now?: number;
+  /**
+   * Namespace the key belongs to, normally the authenticated principal or
+   * tenant. Without a scope, two callers presenting the same key collide:
+   * one sees `replay` or `conflict` for the other's operation.
+   */
+  scope?: string;
 }
+
+/** Outcome of `claimIdempotencyKey`, including header-shape failures that stores never see. */
+export type IdempotencyClaimResult = IdempotencyClaimStatus | 'missing-key' | 'invalid-key';
 
 const METHOD_TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const HEX_SHA256 = /^[a-f0-9]{64}$/;
@@ -126,9 +149,17 @@ export function normalizeIdempotencyKey(value: string): string {
   return decoded;
 }
 
-/** Return a stable non-secret store key so raw client keys need not become Redis keys or logs. */
-export function createIdempotencyStoreKey(key: string): string {
-  return createHash('sha256').update(normalizeIdempotencyKey(key), 'utf8').digest('hex');
+/**
+ * Return a stable non-secret store key so raw client keys need not become
+ * Redis keys or logs. `scope` (tenant, user id) namespaces the key.
+ */
+export function createIdempotencyStoreKey(key: string, scope?: string): string {
+  const hash = createHash('sha256');
+  if (scope !== undefined) {
+    if (typeof scope !== 'string' || scope.length === 0 || scope.length > 512) throw new TypeError('scope must be a non-empty string of at most 512 characters');
+    hash.update('scope\0', 'utf8').update(scope, 'utf8').update('\0', 'utf8');
+  }
+  return hash.update(normalizeIdempotencyKey(key), 'utf8').digest('hex');
 }
 
 function updatePart(hash: ReturnType<typeof createHash>, label: string, value: Buffer): void {
@@ -143,6 +174,10 @@ function updatePart(hash: ReturnType<typeof createHash>, label: string, value: B
 /**
  * Fingerprint the request semantics that must remain stable when a client
  * retries an idempotent operation with the same key.
+ *
+ * The fingerprint covers the exact bytes of method, request target (including
+ * query-string order), normalized content type (including parameters) and
+ * body. Proxies that re-serialize any of these produce a `conflict`.
  */
 export function createIdempotencyFingerprint(input: IdempotencyFingerprintInput): string {
   const method = input.method.trim().toUpperCase();
@@ -166,11 +201,17 @@ export function createIdempotencyFingerprint(input: IdempotencyFingerprintInput)
   return hash.digest('hex');
 }
 
+/**
+ * Claim an `Idempotency-Key` for a request fingerprint. The raw header value
+ * (string, single-element array, or absent) is accepted directly; malformed or
+ * missing keys are reported as statuses rather than thrown so handlers can map
+ * them to 400 responses.
+ */
 export async function claimIdempotencyKey(
-  key: string,
+  key: string | readonly string[] | undefined | null,
   fingerprint: string,
   options: ClaimIdempotencyKeyOptions,
-): Promise<IdempotencyClaimStatus> {
+): Promise<IdempotencyClaimResult> {
   if (!HEX_SHA256.test(fingerprint)) throw new TypeError('fingerprint must be a lowercase SHA-256 hex digest');
   const ttlMs = options.ttlMs ?? 86_400_000;
   if (!Number.isInteger(ttlMs) || ttlMs < 1_000 || ttlMs > 604_800_000) {
@@ -178,6 +219,19 @@ export async function claimIdempotencyKey(
   }
   const now = options.now ?? Date.now();
   validateTimestamp(now);
-  const keyHash = createIdempotencyStoreKey(key);
+
+  let single: string | undefined;
+  if (typeof key === 'string') single = key;
+  else if (key === undefined || key === null) single = undefined;
+  else if (key.length > 1) return 'invalid-key';
+  else single = key[0];
+  if (single === undefined || single === '') return 'missing-key';
+  let keyHash: string;
+  try {
+    keyHash = createIdempotencyStoreKey(single, options.scope);
+  } catch (error) {
+    if (error instanceof TypeError && /scope/.test(error.message)) throw error;
+    return 'invalid-key';
+  }
   return await options.store.claim(keyHash, fingerprint, now + ttlMs, now);
 }
