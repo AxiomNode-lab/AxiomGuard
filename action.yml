@@ -32,7 +32,7 @@ outputs:
     description: Absolute path to the generated SARIF 2.1.0 file.
     value: ${{ steps.scan.outputs.sarif }}
   exit-code:
-    description: AxiomGuard scanner exit code before fail-on-findings handling.
+    description: AxiomGuard scanner exit code (0 clean, 1 new findings unless fail-on-findings is false, 2 error).
     value: ${{ steps.scan.outputs.exit-code }}
 
 runs:
@@ -56,27 +56,25 @@ runs:
         AXIOMGUARD_ANNOTATIONS: ${{ inputs.annotations }}
       run: |
         set -euo pipefail
-        if [[ "$AXIOMGUARD_INPUT_PATH" = /* ]]; then
-          TARGET="$AXIOMGUARD_INPUT_PATH"
-        else
-          TARGET="$GITHUB_WORKSPACE/$AXIOMGUARD_INPUT_PATH"
-        fi
+        abs() { if [[ "$1" = /* ]]; then printf '%s' "$1"; else printf '%s/%s' "$GITHUB_WORKSPACE" "$1"; fi; }
+        TARGET="$(abs "$AXIOMGUARD_INPUT_PATH")"
         SARIF="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.sarif"
         ARGS=(scan "$TARGET" --sarif --output "$SARIF")
-        if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$GITHUB_WORKSPACE/$AXIOMGUARD_CONFIG"); fi
-        if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$GITHUB_WORKSPACE/$AXIOMGUARD_BASELINE"); fi
+        if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$(abs "$AXIOMGUARD_CONFIG")"); fi
+        if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$(abs "$AXIOMGUARD_BASELINE")"); fi
         if [[ "$AXIOMGUARD_ANNOTATIONS" == "true" ]]; then ARGS+=(--github-annotations); fi
+        if [[ "$AXIOMGUARD_FAIL" != "true" ]]; then ARGS+=(--no-fail); fi
         set +e
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${ARGS[@]}"
         STATUS=$?
         set -e
-        echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"
+        if [[ -f "$SARIF" ]]; then echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"; else echo "sarif=" >> "$GITHUB_OUTPUT"; fi
         echo "exit-code=$STATUS" >> "$GITHUB_OUTPUT"
         if [[ "$STATUS" -eq 2 ]]; then
           echo "AxiomGuard failed to execute." >&2
           exit 2
         fi
-        if [[ "$STATUS" -eq 1 && "$AXIOMGUARD_FAIL" == "true" ]]; then
+        if [[ "$STATUS" -eq 1 ]]; then
           echo "AxiomGuard found one or more new potential secrets." >&2
           exit 1
         fi
