@@ -12,7 +12,7 @@ export { MemoryRateLimitStore, checkRateLimit, createRateLimitHeaders, type Rate
 export { MemoryIdempotencyStore, claimIdempotencyKey, createIdempotencyFingerprint, createIdempotencyStoreKey, normalizeIdempotencyKey, type ClaimIdempotencyKeyOptions, type IdempotencyClaimResult, type IdempotencyClaimStatus, type IdempotencyFingerprintInput, type IdempotencyStore } from './idempotency.js';
 export { RequestPolicyError, assertRequestAllowed, createRequestPolicy, evaluateRequestPolicy, type BrowserRequestMetadata, type CompiledRequestPolicy, type RequestPolicyAllowReason, type RequestPolicyBlockReason, type RequestPolicyDecision, type RequestPolicyOptions } from './request-policy.js';
 export { createFindingFingerprint, createSecretScanBaseline, findingsToSarif, parseSecretScanBaseline, parseSecretScannerConfig, scanSecrets, type SecretFinding, type SecretScanBaseline, type SecretScannerConfig, type SecretScanOptions } from './scanner.js';
-export { assertSafeResolvedUrl, assertSafeUrl, isPrivateIPAddress, validateRedirect, type SafeUrlOptions } from './web.js';
-export { safeFetch, type SafeFetchOptions } from './fetch.js';
-export { safePath, sanitizeFilename } from './filesystem.js';
+export { SafeUrlError, assertSafeResolvedUrl, assertSafeUrl, isPrivateIPAddress, normalizeHostname, validateRedirect, type SafeUrlErrorCode, type SafeUrlOptions, type ValidateRedirectOptions } from './web.js';
+export { SafeFetchError, safeFetch, type SafeFetchErrorCode, type SafeFetchOptions } from './fetch.js';
+export { safePath, sanitizeFilename, type SanitizeFilenameOptions } from './filesystem.js';
 export { createExpressSecurityMiddleware, createFastifySecurityHook, createHonoSecurityMiddleware, createIORedisIdempotencyStore, createIORedisRateLimitStore, createIORedisReplayStore, createNodeRedisIdempotencyStore, createNodeRedisRateLimitStore, createNodeRedisReplayStore, type SecurityAdapterOptions } from './adapters/index.js';
