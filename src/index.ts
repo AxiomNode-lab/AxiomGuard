@@ -10,7 +10,7 @@ export { maskPII, redactSecrets, type MaskPIIOptions, type RedactSecretsOptions 
 export { getSecurityHeaderPreset, createPresetSecurityHeaders, type SecurityPresetName } from './presets.js';
 export { MemoryRateLimitStore, checkRateLimit, createRateLimitHeaders, type RateLimitHeaderOptions, type RateLimitOptions, type RateLimitResult, type RateLimitStore, type RateLimitStoreState } from './rate-limit.js';
 export { MemoryIdempotencyStore, claimIdempotencyKey, createIdempotencyFingerprint, createIdempotencyStoreKey, normalizeIdempotencyKey, type ClaimIdempotencyKeyOptions, type IdempotencyClaimResult, type IdempotencyClaimStatus, type IdempotencyFingerprintInput, type IdempotencyStore } from './idempotency.js';
-export { RequestPolicyError, assertRequestAllowed, evaluateRequestPolicy, type BrowserRequestMetadata, type RequestPolicyAllowReason, type RequestPolicyBlockReason, type RequestPolicyDecision, type RequestPolicyOptions } from './request-policy.js';
+export { RequestPolicyError, assertRequestAllowed, createRequestPolicy, evaluateRequestPolicy, type BrowserRequestMetadata, type CompiledRequestPolicy, type RequestPolicyAllowReason, type RequestPolicyBlockReason, type RequestPolicyDecision, type RequestPolicyOptions } from './request-policy.js';
 export { createFindingFingerprint, createSecretScanBaseline, findingsToSarif, parseSecretScanBaseline, parseSecretScannerConfig, scanSecrets, type SecretFinding, type SecretScanBaseline, type SecretScannerConfig, type SecretScanOptions } from './scanner.js';
 export { assertSafeResolvedUrl, assertSafeUrl, isPrivateIPAddress, validateRedirect, type SafeUrlOptions } from './web.js';
 export { safeFetch, type SafeFetchOptions } from './fetch.js';
