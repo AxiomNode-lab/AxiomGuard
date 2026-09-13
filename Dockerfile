@@ -1,11 +1,11 @@
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 COPY package*.json tsconfig.json ./
 RUN npm ci --ignore-scripts
 COPY src ./src
 RUN npm run build
 
-FROM node:22-alpine
+FROM node:26-alpine
 LABEL org.opencontainers.image.source="https://github.com/AxiomNode-lab/AxiomGuard"
 LABEL org.opencontainers.image.url="https://github.com/AxiomNode-lab/AxiomGuard"
 LABEL org.opencontainers.image.documentation="https://github.com/AxiomNode-lab/AxiomGuard#readme"
