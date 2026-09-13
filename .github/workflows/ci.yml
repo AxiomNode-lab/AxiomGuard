@@ -48,7 +48,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: |
           npx --yes publint@0.3.12
-          npx --yes @arethetypeswrong/cli@0.18.2 --pack . --ignore-rules cjs-resolves-to-esm no-resolution
+          npm pack --pack-destination "$RUNNER_TEMP" >/dev/null
+          # node16 profile: node10 resolution is irrelevant for a Node >= 20 ESM-only package.
+          npx --yes @arethetypeswrong/cli@0.18.5 "$RUNNER_TEMP"/axiomnode-lab-guard-*.tgz --profile node16 --ignore-rules cjs-resolves-to-esm
       - name: Changelog mentions the package version
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: node -e "const v=require('./package.json').version; const c=require('node:fs').readFileSync('CHANGELOG.md','utf8'); if(!c.includes('## ['+v+']')) { console.error('CHANGELOG.md has no entry for '+v); process.exit(1) }"
