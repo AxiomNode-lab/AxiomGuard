@@ -27,6 +27,7 @@
     "./webhooks": { "types": "./dist/webhooks.d.ts", "import": "./dist/webhooks.js" },
     "./adapters": { "types": "./dist/adapters/index.d.ts", "import": "./dist/adapters/index.js" },
     "./adapters/express": { "types": "./dist/adapters/express.d.ts", "import": "./dist/adapters/express.js" },
+    "./adapters/fetch": { "types": "./dist/adapters/fetch.d.ts", "import": "./dist/adapters/fetch.js" },
     "./adapters/fastify": { "types": "./dist/adapters/fastify.d.ts", "import": "./dist/adapters/fastify.js" },
     "./adapters/hono": { "types": "./dist/adapters/hono.d.ts", "import": "./dist/adapters/hono.js" },
     "./adapters/redis": { "types": "./dist/adapters/redis.d.ts", "import": "./dist/adapters/redis.js" }

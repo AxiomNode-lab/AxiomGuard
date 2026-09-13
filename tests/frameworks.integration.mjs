@@ -87,3 +87,71 @@ test('Hono 4 middleware applies headers and blocks untrusted unsafe origins', as
   assert.equal(preflight.status, 204);
   assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://app.example');
 });
+
+test('adapters treat client-controlled Origin values as not allowed instead of failing', async () => {
+  const app = express();
+  app.use((_req, res, next) => { res.setHeader('Vary', 'Accept-Encoding'); next(); });
+  app.use(createExpressSecurityMiddleware(adapterOptions));
+  app.get('/ok', (_req, res) => res.status(200).send('ok'));
+  const server = await new Promise((resolve) => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)); });
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    for (const origin of ['null', 'garbage', 'http://a/b', 'https://evil.example']) {
+      const response = await fetch(`${base}/ok`, { headers: { Origin: origin } });
+      assert.equal(response.status, 200, origin);
+      assert.equal(response.headers.get('access-control-allow-origin'), null, origin);
+      assert.equal(response.headers.get('vary'), 'Accept-Encoding, Origin', `Vary is merged for ${origin}`);
+    }
+    const noOrigin = await fetch(`${base}/ok`);
+    assert.equal(noOrigin.headers.get('vary'), 'Accept-Encoding, Origin', 'same-origin responses vary on Origin too');
+    assert.equal(noOrigin.headers.get('x-powered-by'), null);
+    const bareOptions = await fetch(`${base}/ok`, { method: 'OPTIONS', headers: { Origin: 'https://app.example' } });
+    assert.notEqual(bareOptions.status, 204, 'OPTIONS without Access-Control-Request-Method is not a preflight');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+
+  const fastify = Fastify();
+  fastify.addHook('onRequest', createFastifySecurityHook(adapterOptions));
+  fastify.get('/ok', async () => ({ ok: true }));
+  try {
+    const response = await fastify.inject({ method: 'GET', url: '/ok', headers: { origin: 'null' } });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers['access-control-allow-origin'], undefined);
+    assert.equal(response.headers.vary, 'Origin');
+  } finally {
+    await fastify.close();
+  }
+
+  const hono = new Hono();
+  hono.use('*', createHonoSecurityMiddleware(adapterOptions));
+  hono.get('/ok', (context) => { context.header('Vary', 'Accept-Encoding'); context.header('X-Frame-Options', 'ALLOWALL'); return context.text('ok'); });
+  hono.get('/boom', () => { throw new Error('boom'); });
+  const nullOrigin = await hono.request('/ok', { headers: { Origin: 'null' } });
+  assert.equal(nullOrigin.status, 200);
+  assert.equal(nullOrigin.headers.get('access-control-allow-origin'), null);
+  assert.equal(nullOrigin.headers.get('vary'), 'Accept-Encoding, Origin');
+  assert.equal(nullOrigin.headers.get('x-frame-options'), 'DENY', 'Hono adapter owns the final defensive values');
+  const boom = await hono.request('/boom');
+  assert.equal(boom.status, 500);
+});
+
+test('fetch adapter wraps any Request handler', async () => {
+  const { createFetchSecurityHandler } = await import('../dist/adapters/fetch.js');
+  const guard = createFetchSecurityHandler(adapterOptions);
+  const handler = (request) => guard(request, async () => new Response('ok', { headers: { Vary: 'Accept', 'X-Powered-By': 'demo' } }));
+
+  const ok = await handler(new Request('https://api.example/ok', { headers: { Origin: 'https://app.example' } }));
+  assert.equal(ok.status, 200);
+  assert.equal(await ok.text(), 'ok');
+  assert.equal(ok.headers.get('access-control-allow-origin'), 'https://app.example');
+  assert.equal(ok.headers.get('vary'), 'Accept, Origin');
+  assert.equal(ok.headers.get('x-powered-by'), null);
+  assert.equal(ok.headers.get('x-content-type-options'), 'nosniff');
+
+  const preflight = await handler(new Request('https://api.example/ok', { method: 'OPTIONS', headers: { Origin: 'https://app.example', 'Access-Control-Request-Method': 'POST' } }));
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('access-control-allow-methods'), 'GET, POST');
+  const blocked = await handler(new Request('https://api.example/mutate', { method: 'POST', headers: { Origin: 'https://evil.example' } }));
+  assert.equal(blocked.status, 403);
+});

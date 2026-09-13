@@ -12,12 +12,19 @@ test('secure cookies enforce host prefix invariants', () => {
 
 test('cors rejects unsafe policies and varies explicit origins', () => {
   assert.throws(() => createCorsHeaders('https://app.example', { origins: '*', allowCredentials: true }));
-  assert.throws(() => createCorsHeaders('null', { origins: '*' }));
-  assert.throws(() => createCorsHeaders('file:///tmp/test', { origins: '*' }));
+  assert.throws(() => createCorsHeaders('null', { origins: ['null'], allowNullOrigin: true, allowCredentials: true }));
+  assert.throws(() => createCorsHeaders('https://app.example', { origins: ['app.example'] }), /invalid configured origin/);
+  // Client-controlled origins never throw: they are simply not allowed.
+  assert.equal(createCorsHeaders('null', { origins: ['https://app.example'] }), null);
+  assert.equal(createCorsHeaders('file:///tmp/test', { origins: ['https://app.example'] }), null);
+  assert.equal(createCorsHeaders('http://a/b', { origins: ['https://app.example'] }), null);
   const headers = createCorsHeaders('https://app.example', { origins: ['https://app.example'], allowCredentials: true, allowPrivateNetwork: true });
   assert.equal(headers?.['Access-Control-Allow-Origin'], 'https://app.example');
   assert.equal(headers?.Vary, 'Origin');
-  assert.equal(headers?.['Access-Control-Allow-Private-Network'], 'true');
+  assert.equal(headers?.['Access-Control-Allow-Private-Network'], undefined, 'PNA is a preflight-only answer');
+  const preflight = createCorsHeaders('https://app.example', { origins: ['https://app.example'], allowPrivateNetwork: true, allowMethods: ['GET'] }, { method: 'OPTIONS', accessControlRequestMethod: 'GET', accessControlRequestPrivateNetwork: 'true' });
+  assert.equal(preflight?.['Access-Control-Allow-Private-Network'], 'true');
+  assert.equal(preflight?.['Access-Control-Allow-Methods'], 'GET');
   const nullHeaders = createCorsHeaders('null', { origins: ['null'], allowNullOrigin: true });
   assert.equal(nullHeaders?.['Access-Control-Allow-Origin'], 'null');
 });
