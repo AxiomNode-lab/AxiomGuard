@@ -106,8 +106,7 @@ regenerate baselines deliberately.
 national length (10–11 digits) and grouped numbers with a 5+ digit group are
 left alone, so timestamps, epochs and UUIDs survive. IPv6 addresses are masked.
 
-**Source maps are no longer shipped** and `npm test` runs `node --test`
-without a glob (integration files are excluded by Node's default patterns).
+**Source maps are no longer shipped** in the package.
 
 ### Added
 

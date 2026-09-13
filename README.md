@@ -13,11 +13,19 @@
 
 AxiomGuard (published as `@axiomnode-lab/guard`) is a modular security toolkit for backend services. It provides focused primitives for signed webhooks, API keys, browser request policy, idempotency, SSRF-aware outbound requests, rate limiting, secure cookies, CSRF, CORS, security headers, environment validation, secret-safe logging and repository scanning.
 
-Use the complete package when convenience matters, or import a focused subpath when you only need one control. Every helper fails closed, validates its configuration at startup, and never throws on client-controlled input. See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit and friends.
+Use the complete package when convenience matters, or import a focused subpath when you only need one control.
+
+- **Zero runtime dependencies** — nothing to audit but this package.
+- **Fails closed** — every helper validates its configuration at startup and never throws on client-controlled input.
+- **Framework-neutral** — first-class adapters for Express, Fastify, Hono and Web-standard runtimes (Next.js, Cloudflare, Bun, Deno).
+- **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection.
+- **Typed end to end** — from `requireEnv` schemas to stable error codes.
+
+See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit and friends.
 
 ## Install
 
-**Requirements:** Node.js 20 or newer (22 and 24 are the tested LTS lines). AxiomGuard is published as an ES module; `require()` works on Node 20.19+/22.12+ through `require(esm)`. TypeScript 5.x with `moduleResolution: node16 | nodenext | bundler`.
+**Requirements:** Node.js 20 or newer (22 or 24 LTS recommended). AxiomGuard is published as an ES module; `require()` works on Node 20.19+/22.12+ through `require(esm)`. TypeScript 5.x with `moduleResolution: node16 | nodenext | bundler`.
 
 ```bash
 npm install @axiomnode-lab/guard
@@ -443,18 +451,18 @@ AxiomGuard provides security primitives; it is not a replacement for the rest of
 
 Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md](THREAT_MODEL.md) for design boundaries.
 
-## Support policy
+## Supported platforms
 
-- **Node.js:** 20, 22 and 24 are tested on Linux; 24 on Windows and macOS. Node 20 is past end-of-life and will be dropped in a future minor.
+- **Node.js:** 20, 22 and 24 on Linux, macOS and Windows. Node 20 has reached end-of-life upstream and will be dropped in a future minor.
 - **TypeScript:** 5.x; declarations are emitted with `NodeNext` resolution.
-- **Releases:** pre-1.0. Minors may tighten security defaults; each change is listed in [UPGRADING.md](UPGRADING.md) with its migration.
+- **Versioning:** semantic versioning, pre-1.0. A minor release may tighten a security default; every such change ships with a migration note in [UPGRADING.md](UPGRADING.md).
 
 ## Documentation
 
 - [API reference](docs/API.md)
 - [Upgrading between versions](UPGRADING.md)
 - [Comparison with other libraries](docs/COMPARISON.md)
-- [Runnable examples](examples/)
+- [Examples](examples/)
 - [API protection](docs/API_PROTECTION.md)
 - [Framework adapters](docs/ADAPTERS.md)
 - [Safe fetch](docs/SAFE_FETCH.md)

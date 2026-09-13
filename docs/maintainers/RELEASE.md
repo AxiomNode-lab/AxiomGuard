@@ -79,7 +79,7 @@ Published artifacts must then be verified independently. Source version alone is
 4. Create a GitHub Release whose tag exactly matches the package version (`gh release create vx.y.z --generate-notes`); `.github/release.yml` groups the notes by label.
 5. Let npmjs Trusted Publishing and GHCR release workflows run from the release event.
 6. Verify every claimed registry/release artifact independently, including `npm view @axiomnode-lab/guard@x.y.z dist.attestations` for provenance.
-7. Update the `uses: AxiomNode-lab/AxiomGuard@vx.y.z` example in `docs/GITHUB_ACTION.md` and the container tag in `docs/GITHUB_ACTION.md`/`README.md`.
+7. Update the `uses: AxiomNode-lab/AxiomGuard@vx.y.z` example and the container tag in `docs/GITHUB_ACTION.md`/`README.md`.
 
 ## Versioning
 
