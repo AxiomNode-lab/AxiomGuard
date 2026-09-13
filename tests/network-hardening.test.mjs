@@ -55,7 +55,7 @@ test('isPrivateIPAddress blocks IPv4-translated, local-use NAT64, discard and do
 });
 
 test('safeFetch timeout and caller signal keep applying while the body streams', async () => {
-  await withServer((request, response) => {
+  await withServer((_request, response) => {
     response.writeHead(200, { 'content-type': 'text/plain' });
     response.write('partial');
     // Never end: simulate a stalled body.
@@ -74,7 +74,7 @@ test('safeFetch timeout and caller signal keep applying while the body streams',
 });
 
 test('safeFetch enforces maxResponseBytes without buffering the whole body', async () => {
-  await withServer((request, response) => {
+  await withServer((_request, response) => {
     response.writeHead(200);
     response.end('x'.repeat(10_000));
   }, async (base) => {
@@ -136,7 +136,7 @@ test('safeFetch redirect: manual returns the validated 3xx and typed errors carr
 
 test('safeFetch strips API-key style headers on cross-origin redirects', async () => {
   const calls = [];
-  const fetchImpl = async (url, init) => {
+  const fetchImpl = async (_url, init) => {
     calls.push(Object.fromEntries(new Headers(init.headers).entries()));
     return calls.length === 1 ? new Response(null, { status: 302, headers: { location: 'https://1.1.1.1/next' } }) : new Response('ok');
   };

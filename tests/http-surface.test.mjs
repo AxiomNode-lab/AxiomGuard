@@ -44,7 +44,7 @@ test('cookies can be parsed and cleared and reject unsafe attributes', () => {
   assert.deepEqual(parseCookies(undefined), {});
   const polluted = parseCookies('__proto__=1; a=2');
   assert.equal(Object.getPrototypeOf(polluted), Object.prototype);
-  assert.equal(polluted.__proto__, '1');
+  assert.equal(Object.getOwnPropertyDescriptor(polluted, '__proto__')?.value, '1');
   assert.equal(clearCookie('session', { sameSite: 'Strict' }), 'session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict');
   assert.throws(() => serializeCookie('a', 'b', { path: 'foo' }), /Path must start with/);
   assert.throws(() => serializeCookie('a', 'b', { domain: 'x y' }), /Domain/);

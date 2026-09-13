@@ -102,7 +102,7 @@ function embeddedIPv4(words: readonly number[]): string {
 
 function isPrivateIPv6(ip: string): boolean {
   const words = parseIpv6Words(ip);
-  if (!words || words.length !== 8) return true;
+  if (words?.length !== 8) return true;
 
   const allZero = words.every((word) => word === 0);
   const loopback = words.slice(0, 7).every((word) => word === 0) && words[7] === 1;

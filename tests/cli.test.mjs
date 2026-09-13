@@ -27,6 +27,7 @@ async function fixture() {
   await writeFile(path.join(dir, 'id_rsa'), `${PEM}\nabc\n`);
   await writeFile(path.join(dir, 'Dockerfile'), `FROM node\nENV API_TOKEN=abc123def456ghi\n`);
   await writeFile(path.join(dir, 'vendor', 'x.env'), `PASSWORD=vendored-Secret-123\n`);
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture deliberately contains a shell-style reference.
   await writeFile(path.join(dir, 'clean.md'), '# nothing here\nPASSWORD=changeme\nTOKEN=${TOKEN}\n');
   return dir;
 }
@@ -140,6 +141,7 @@ test('scanner rule coverage for private keys, provider tokens and env values', a
     };
     for (const [file, [content]] of Object.entries(cases)) await writeFile(path.join(dir, file), `${content}\n`);
     await writeFile(path.join(dir, 'types.ts'), 'interface A {\n  secret: string;\n  token: string;\n  password?: string;\n}\nconst secret = "abc";\n');
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: fixtures deliberately contain variable references.
     await writeFile(path.join(dir, 'placeholders.env'), 'PASSWORD=${DB_PASSWORD}\nTOKEN=$(vault read)\nAPI_KEY=%API_KEY%\nSECRET=xxxxxxxx\nTOKEN=<your-token>\nAPI_KEY="your-api-key"\nTOKEN=${{ secrets.X }}\nPASSWORD=changeme\n');
     await writeFile(path.join(dir, 'pk_test.js'), `const publishable = ['pk_live_', 'a'.repeat(24)].join('');\nconst redis = 'redis://:changeme@host';\n`);
     const findings = await scanSecrets(dir);
