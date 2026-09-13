@@ -1,4 +1,4 @@
-import { adapterCorsHeaders, adapterRequestPolicy, adapterSecurityHeaders, blockedRequestStatus, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
+import { createSecurityCore, mergeVary, normalizeHeaderValue, type SecurityAdapterOptions } from './shared.js';
 
 export interface ExpressLikeRequest {
   method?: string;
@@ -8,38 +8,37 @@ export interface ExpressLikeRequest {
 export interface ExpressLikeResponse {
   statusCode: number;
   setHeader(name: string, value: string): unknown;
+  getHeader?(name: string): string | number | readonly string[] | undefined;
+  removeHeader?(name: string): unknown;
   end(): unknown;
 }
 
 export type ExpressLikeNext = (error?: unknown) => void;
 export type ExpressSecurityMiddleware = (request: ExpressLikeRequest, response: ExpressLikeResponse, next: ExpressLikeNext) => void;
 
-export function createExpressSecurityMiddleware(options: SecurityAdapterOptions = {}): ExpressSecurityMiddleware {
-  const securityHeaders = adapterSecurityHeaders(options);
-  const status = preflightStatus(options);
-  const deniedStatus = blockedRequestStatus(options);
-  return (request, response, next) => {
-    for (const [name, value] of Object.entries(securityHeaders)) response.setHeader(name, value);
-    const origin = normalizeHeaderValue(request.headers.origin);
-    const corsHeaders = adapterCorsHeaders(origin, options);
-    if (corsHeaders) for (const [name, value] of Object.entries(corsHeaders)) response.setHeader(name, value);
-    if (shouldHandlePreflight(request.method, corsHeaders, options)) {
-      response.statusCode = status;
-      response.end();
-      return;
-    }
+function applyHeaders(response: ExpressLikeResponse, headers: Record<string, string>): void {
+  for (const [name, value] of Object.entries(headers)) {
+    response.setHeader(name, name === 'Vary' ? mergeVary(response.getHeader?.('Vary'), value) : value);
+  }
+}
 
-    const decision = adapterRequestPolicy({
-      method: request.method ?? '',
-      origin: origin ?? null,
-      secFetchSite: normalizeHeaderValue(request.headers['sec-fetch-site']) ?? null,
-    }, options);
-    if (decision && !decision.allowed) {
-      response.statusCode = deniedStatus;
-      response.end();
+/**
+ * Express/Connect middleware: sets defensive headers before the handler runs
+ * (handlers may override them), answers CORS preflights and optionally
+ * enforces the browser request policy. Client-controlled input never throws.
+ */
+export function createExpressSecurityMiddleware(options: SecurityAdapterOptions = {}): ExpressSecurityMiddleware {
+  const core = createSecurityCore(options);
+  return (request, response, next) => {
+    if (core.removePoweredBy) response.removeHeader?.('X-Powered-By');
+    const outcome = core.evaluate({ method: request.method ?? '', header: (name) => normalizeHeaderValue(request.headers[name]) });
+    applyHeaders(response, outcome.headers);
+    if (outcome.kind === 'continue') {
+      next();
       return;
     }
-    next();
+    response.statusCode = outcome.status;
+    response.end();
   };
 }
 

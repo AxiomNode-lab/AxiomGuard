@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { createHmac } from 'node:crypto';
 import {
   assertSafeUrl,
@@ -78,7 +79,7 @@ test('validateRedirect requires an allowed origin', () => {
 });
 
 test('safePath prevents traversal', () => {
-  assert.match(safePath('/tmp/workspace', 'uploads/a.txt'), /uploads\/a\.txt$/);
+  assert.equal(safePath('/tmp/workspace', 'uploads/a.txt'), path.resolve('/tmp/workspace', 'uploads', 'a.txt'));
   assert.throws(() => safePath('/tmp/workspace', '../../etc/passwd'));
 });
 

@@ -1,4 +1,4 @@
-import { adapterCorsHeaders, adapterRequestPolicy, adapterSecurityHeaders, blockedRequestStatus, normalizeHeaderValue, preflightStatus, shouldHandlePreflight, type SecurityAdapterOptions } from './shared.js';
+import { createSecurityCore, mergeVary, normalizeHeaderValue, type SecurityAdapterOptions } from './shared.js';
 
 export interface FastifyLikeRequest {
   method?: string;
@@ -7,6 +7,8 @@ export interface FastifyLikeRequest {
 
 export interface FastifyLikeReply {
   header(name: string, value: string): FastifyLikeReply | unknown;
+  getHeader?(name: string): string | number | readonly string[] | undefined;
+  removeHeader?(name: string): unknown;
   code(status: number): FastifyLikeReply;
   send(payload?: unknown): unknown;
 }
@@ -21,23 +23,15 @@ export interface FastifyLikeReply {
 export type FastifySecurityHook = (request: FastifyLikeRequest, reply: FastifyLikeReply) => Promise<unknown>;
 
 export function createFastifySecurityHook(options: SecurityAdapterOptions = {}): FastifySecurityHook {
-  const securityHeaders = adapterSecurityHeaders(options);
-  const status = preflightStatus(options);
-  const deniedStatus = blockedRequestStatus(options);
+  const core = createSecurityCore(options);
   return async (request, reply) => {
-    for (const [name, value] of Object.entries(securityHeaders)) reply.header(name, value);
-    const origin = normalizeHeaderValue(request.headers.origin);
-    const corsHeaders = adapterCorsHeaders(origin, options);
-    if (corsHeaders) for (const [name, value] of Object.entries(corsHeaders)) reply.header(name, value);
-    if (shouldHandlePreflight(request.method, corsHeaders, options)) return reply.code(status).send();
-
-    const decision = adapterRequestPolicy({
-      method: request.method ?? '',
-      origin: origin ?? null,
-      secFetchSite: normalizeHeaderValue(request.headers['sec-fetch-site']) ?? null,
-    }, options);
-    if (decision && !decision.allowed) return reply.code(deniedStatus).send();
-    return undefined;
+    if (core.removePoweredBy) reply.removeHeader?.('X-Powered-By');
+    const outcome = core.evaluate({ method: request.method ?? '', header: (name) => normalizeHeaderValue(request.headers[name]) });
+    for (const [name, value] of Object.entries(outcome.headers)) {
+      reply.header(name, name === 'Vary' ? mergeVary(reply.getHeader?.('Vary'), value) : value);
+    }
+    if (outcome.kind === 'continue') return undefined;
+    return reply.code(outcome.status).send();
   };
 }
 

@@ -1,12 +1,12 @@
 # API protection primitives
 
-AxiomGuard 0.6 adds framework-neutral controls for two request-layer problems that are often implemented inconsistently: browser cross-site request filtering and duplicate non-idempotent operations. It also expands provider-aware webhook verification for Meta/WhatsApp and Slack.
+AxiomGuard provides framework-neutral controls for two request-layer problems that are often implemented inconsistently: browser cross-site request filtering and duplicate non-idempotent operations. It also expands provider-aware webhook verification for Meta/WhatsApp and Slack.
 
 These helpers are defensive building blocks. They do not replace authentication, authorization, transaction boundaries, durable response storage, a WAF, or network policy.
 
 ## Browser request policy
 
-`evaluateRequestPolicy()` treats `Sec-Fetch-Site` as the primary browser signal for unsafe methods and falls back to strict `Origin` verification when Fetch Metadata is absent or inconclusive. This follows the deployment shape recommended by the OWASP CSRF Prevention Cheat Sheet: Fetch Metadata is useful, but legacy/non-browser traffic requires an origin-aware fallback.
+`createRequestPolicy()` validates the options once and returns a reusable `{ evaluate, assert }` pair; `evaluateRequestPolicy()` is the one-shot form. Both treat `Sec-Fetch-Site` as the primary browser signal for unsafe methods and falls back to strict `Origin` verification when Fetch Metadata is absent or inconclusive. This follows the deployment shape recommended by the OWASP CSRF Prevention Cheat Sheet: Fetch Metadata is useful, but legacy/non-browser traffic requires an origin-aware fallback.
 
 ```ts
 import { evaluateRequestPolicy } from '@axiomnode-lab/guard/request-policy';
@@ -36,6 +36,20 @@ Default policy for methods other than `GET`, `HEAD`, and `OPTIONS`:
 - Requests with neither browser metadata nor Origin are rejected unless `allowNoOrigin: true` is explicitly configured for a machine-to-machine endpoint.
 
 The helper assumes methods configured as `safeMethods` are actually side-effect free. If an application changes state in `GET`, adding this policy does not repair that design.
+
+### Decision matrix
+
+For an unsafe method (anything outside `safeMethods`), the decision depends on `Sec-Fetch-Site` first and `Origin` second:
+
+| `Sec-Fetch-Site` | `Origin` listed | `Origin` unlisted | `Origin: null` | invalid `Origin` | no `Origin` |
+| --- | --- | --- | --- | --- | --- |
+| `same-origin` | allow | allow | allow | allow | allow |
+| `same-site` | `trusted-origin` | `untrusted-origin` | `null-origin` | `invalid-origin` | `same-site-not-allowed` (`allowSameSite` allows) |
+| `cross-site` | `cross-site` (`allowCrossSiteFromAllowedOrigins` allows) | `cross-site` | `cross-site` | `cross-site` | `cross-site` |
+| `none` / absent | `trusted-origin` | `untrusted-origin` | `null-origin` | `invalid-origin` | `missing-origin` (`allowNoOrigin` allows) |
+| other value | `invalid-fetch-metadata` | | | | |
+
+`allowCrossSiteFromAllowedOrigins` accepts a browser-reported `cross-site` request whose `Origin` is allow-listed. `Origin` is set by the browser and cannot be forged from a page, so this is the OWASP origin check for partner front-ends hosted on another site. It is off by default.
 
 ### Framework adapters
 
@@ -80,10 +94,14 @@ const fingerprint = createIdempotencyFingerprint({
 const status = await claimIdempotencyKey(
   req.headers['idempotency-key'],
   fingerprint,
-  { store, ttlMs: 24 * 60 * 60 * 1000 },
+  { store, ttlMs: 24 * 60 * 60 * 1000, scope: user.id },
 );
 
 switch (status) {
+  case 'missing-key':
+  case 'invalid-key':
+    // 400: the header is required; visible ASCII, at most 255 bytes, optionally quoted.
+    break;
   case 'accepted':
     // Process the operation once.
     break;
@@ -99,7 +117,9 @@ switch (status) {
 }
 ```
 
-Raw idempotency keys are normalized and SHA-256 hashed before reaching the store. Request fingerprints bind method, request target, normalized content type and raw body with length-delimited hashing.
+Raw idempotency keys are normalized and SHA-256 hashed together with `scope` before reaching the store. Always set `scope` to the authenticated principal or tenant: without it, two callers presenting the same key collide and one of them sees `replay` or `conflict` for the other's operation.
+
+Request fingerprints bind method, request target, normalized content type and raw body with length-delimited hashing. They cover the exact bytes, so `?a=1&b=2` and `?b=2&a=1`, or `application/json` and `application/json; charset=utf-8`, are different requests. Proxies that re-serialize requests will produce `conflict`; normalise before fingerprinting if that is expected in your deployment.
 
 `MemoryIdempotencyStore` is bounded and single-process. It never evicts a live claim to make room for attacker-controlled high-cardinality keys. Multi-instance deployments should use the node-redis/ioredis adapters:
 

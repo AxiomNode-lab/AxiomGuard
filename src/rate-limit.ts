@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 export interface RateLimitStoreState {
   count: number;
   resetAt: number;
@@ -134,4 +136,56 @@ export function createRateLimitHeaders(result: RateLimitResult, options: RateLim
   }
 
   return headers;
+}
+
+export interface ClientIpOptions {
+  /**
+   * Number of trusted reverse proxies in front of the service. The client IP
+   * is taken that many hops from the right of `X-Forwarded-For`; entries
+   * further left are attacker-controlled. Default: 0 (ignore the header).
+   */
+  trustedProxyCount?: number;
+}
+
+function normalizeIp(value: string): string | null {
+  let candidate = value.trim();
+  if (candidate.startsWith('[') && candidate.endsWith(']')) candidate = candidate.slice(1, -1);
+  if (/^::ffff:\d{1,3}(?:\.\d{1,3}){3}$/i.test(candidate)) candidate = candidate.slice('::ffff:'.length);
+  const family = isIP(candidate);
+  if (family === 0) return null;
+  return family === 6 ? candidate.toLowerCase() : candidate;
+}
+
+/**
+ * Derive a rate-limit partition key from the socket address and, only when
+ * `trustedProxyCount` is set, the `X-Forwarded-For` chain. Anything the
+ * client could have written is ignored, so the result cannot be spoofed to
+ * escape a limit or to poison someone else's bucket.
+ */
+export function getClientIp(remoteAddress: string | undefined | null, forwardedFor: string | readonly string[] | undefined | null, options: ClientIpOptions = {}): string | null {
+  const trusted = options.trustedProxyCount ?? 0;
+  if (!Number.isInteger(trusted) || trusted < 0 || trusted > 32) throw new RangeError('trustedProxyCount must be an integer between 0 and 32');
+  const socket = typeof remoteAddress === 'string' ? normalizeIp(remoteAddress) : null;
+  if (trusted === 0) return socket;
+
+  const raw = Array.isArray(forwardedFor) ? forwardedFor.join(',') : typeof forwardedFor === 'string' ? forwardedFor : '';
+  const hops = raw.split(',').map((hop) => hop.trim()).filter((hop) => hop.length > 0);
+  // The socket peer is proxy #1; the header lists the rest right-to-left.
+  const index = hops.length - trusted;
+  if (index < 0) return socket;
+  const candidate = hops[index];
+  return candidate === undefined ? socket : normalizeIp(candidate) ?? socket;
+}
+
+/** Bucket an IPv6 address by its /64 so one host cannot rotate through a whole prefix. Returns IPv4 unchanged. */
+export function rateLimitBucketForIp(ip: string): string {
+  const normalized = normalizeIp(ip);
+  if (!normalized) throw new TypeError('ip must be a valid IPv4 or IPv6 address');
+  if (isIP(normalized) === 4) return normalized;
+  const expanded = normalized.split('::');
+  const left = expanded[0] ? expanded[0].split(':') : [];
+  const right = expanded[1] ? expanded[1].split(':') : [];
+  const missing = 8 - left.length - right.length;
+  const words = [...left, ...Array.from({ length: expanded.length > 1 ? missing : 0 }, () => '0'), ...right];
+  return `${words.slice(0, 4).map((word) => word.padStart(4, '0')).join(':')}::/64`;
 }

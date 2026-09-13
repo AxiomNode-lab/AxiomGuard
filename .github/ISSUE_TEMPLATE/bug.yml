@@ -23,7 +23,7 @@ body:
     id: version
     attributes:
       label: AxiomGuard version
-      placeholder: 0.3.0
+      placeholder: 0.7.0
     validations:
       required: true
   - type: input

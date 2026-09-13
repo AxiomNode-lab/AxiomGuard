@@ -1,56 +1,208 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.6.3",
-  "description": "A zero-runtime-dependency security SDK for Node.js: webhooks, request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, scanning and framework adapters.",
+  "version": "0.7.0",
+  "description": "Zero-runtime-dependency security SDK for Node.js: webhooks (GitHub, Stripe, Slack, Meta, Standard Webhooks), request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, secret scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./api-keys": { "types": "./dist/api-keys.d.ts", "import": "./dist/api-keys.js" },
-    "./cookies": { "types": "./dist/cookies.d.ts", "import": "./dist/cookies.js" },
-    "./cors": { "types": "./dist/cors.d.ts", "import": "./dist/cors.js" },
-    "./crypto": { "types": "./dist/crypto.d.ts", "import": "./dist/crypto.js" },
-    "./csrf": { "types": "./dist/csrf.d.ts", "import": "./dist/csrf.js" },
-    "./env": { "types": "./dist/env.d.ts", "import": "./dist/env.js" },
-    "./fetch": { "types": "./dist/fetch.d.ts", "import": "./dist/fetch.js" },
-    "./filesystem": { "types": "./dist/filesystem.d.ts", "import": "./dist/filesystem.js" },
-    "./headers": { "types": "./dist/headers.d.ts", "import": "./dist/headers.js" },
-    "./idempotency": { "types": "./dist/idempotency.d.ts", "import": "./dist/idempotency.js" },
-    "./logging": { "types": "./dist/logging.d.ts", "import": "./dist/logging.js" },
-    "./presets": { "types": "./dist/presets.d.ts", "import": "./dist/presets.js" },
-    "./rate-limit": { "types": "./dist/rate-limit.d.ts", "import": "./dist/rate-limit.js" },
-    "./request-policy": { "types": "./dist/request-policy.d.ts", "import": "./dist/request-policy.js" },
-    "./scanner": { "types": "./dist/scanner.d.ts", "import": "./dist/scanner.js" },
-    "./web": { "types": "./dist/web.d.ts", "import": "./dist/web.js" },
-    "./webhooks": { "types": "./dist/webhooks.d.ts", "import": "./dist/webhooks.js" },
-    "./adapters": { "types": "./dist/adapters/index.d.ts", "import": "./dist/adapters/index.js" },
-    "./adapters/express": { "types": "./dist/adapters/express.d.ts", "import": "./dist/adapters/express.js" },
-    "./adapters/fastify": { "types": "./dist/adapters/fastify.d.ts", "import": "./dist/adapters/fastify.js" },
-    "./adapters/hono": { "types": "./dist/adapters/hono.d.ts", "import": "./dist/adapters/hono.js" },
-    "./adapters/redis": { "types": "./dist/adapters/redis.d.ts", "import": "./dist/adapters/redis.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./api-keys": {
+      "types": "./dist/api-keys.d.ts",
+      "import": "./dist/api-keys.js",
+      "default": "./dist/api-keys.js"
+    },
+    "./cookies": {
+      "types": "./dist/cookies.d.ts",
+      "import": "./dist/cookies.js",
+      "default": "./dist/cookies.js"
+    },
+    "./cors": {
+      "types": "./dist/cors.d.ts",
+      "import": "./dist/cors.js",
+      "default": "./dist/cors.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto.d.ts",
+      "import": "./dist/crypto.js",
+      "default": "./dist/crypto.js"
+    },
+    "./csrf": {
+      "types": "./dist/csrf.d.ts",
+      "import": "./dist/csrf.js",
+      "default": "./dist/csrf.js"
+    },
+    "./env": {
+      "types": "./dist/env.d.ts",
+      "import": "./dist/env.js",
+      "default": "./dist/env.js"
+    },
+    "./fetch": {
+      "types": "./dist/fetch.d.ts",
+      "import": "./dist/fetch.js",
+      "default": "./dist/fetch.js"
+    },
+    "./filesystem": {
+      "types": "./dist/filesystem.d.ts",
+      "import": "./dist/filesystem.js",
+      "default": "./dist/filesystem.js"
+    },
+    "./headers": {
+      "types": "./dist/headers.d.ts",
+      "import": "./dist/headers.js",
+      "default": "./dist/headers.js"
+    },
+    "./idempotency": {
+      "types": "./dist/idempotency.d.ts",
+      "import": "./dist/idempotency.js",
+      "default": "./dist/idempotency.js"
+    },
+    "./logging": {
+      "types": "./dist/logging.d.ts",
+      "import": "./dist/logging.js",
+      "default": "./dist/logging.js"
+    },
+    "./presets": {
+      "types": "./dist/presets.d.ts",
+      "import": "./dist/presets.js",
+      "default": "./dist/presets.js"
+    },
+    "./rate-limit": {
+      "types": "./dist/rate-limit.d.ts",
+      "import": "./dist/rate-limit.js",
+      "default": "./dist/rate-limit.js"
+    },
+    "./request-policy": {
+      "types": "./dist/request-policy.d.ts",
+      "import": "./dist/request-policy.js",
+      "default": "./dist/request-policy.js"
+    },
+    "./scanner": {
+      "types": "./dist/scanner.d.ts",
+      "import": "./dist/scanner.js",
+      "default": "./dist/scanner.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js",
+      "default": "./dist/web.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "import": "./dist/webhooks.js",
+      "default": "./dist/webhooks.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js",
+      "default": "./dist/adapters/index.js"
+    },
+    "./adapters/express": {
+      "types": "./dist/adapters/express.d.ts",
+      "import": "./dist/adapters/express.js",
+      "default": "./dist/adapters/express.js"
+    },
+    "./adapters/fastify": {
+      "types": "./dist/adapters/fastify.d.ts",
+      "import": "./dist/adapters/fastify.js",
+      "default": "./dist/adapters/fastify.js"
+    },
+    "./adapters/fetch": {
+      "types": "./dist/adapters/fetch.d.ts",
+      "import": "./dist/adapters/fetch.js",
+      "default": "./dist/adapters/fetch.js"
+    },
+    "./adapters/hono": {
+      "types": "./dist/adapters/hono.d.ts",
+      "import": "./dist/adapters/hono.js",
+      "default": "./dist/adapters/hono.js"
+    },
+    "./adapters/redis": {
+      "types": "./dist/adapters/redis.d.ts",
+      "import": "./dist/adapters/redis.js",
+      "default": "./dist/adapters/redis.js"
+    },
+    "./package.json": "./package.json"
   },
-  "bin": { "axiomguard": "dist/cli.js" },
-  "files": ["dist", "README.md", "LICENSE", "SECURITY.md", "THREAT_MODEL.md", "RESEARCH.md", "docs"],
+  "bin": {
+    "axiomguard": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "THREAT_MODEL.md",
+    "UPGRADING.md",
+    "docs/ADAPTERS.md",
+    "docs/API.md",
+    "docs/API_PROTECTION.md",
+    "docs/GITHUB_ACTION.md",
+    "docs/SAFE_FETCH.md",
+    "docs/SCANNER.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test tests/*.test.mjs",
-    "test:coverage": "npm run build && node --experimental-test-coverage --test tests/*.test.mjs",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "test": "npm run build && node --test",
+    "test:types": "npm run build && tsc -p tests/types/tsconfig.json",
+    "test:coverage": "npm run build && node --test --experimental-test-coverage",
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "test:integration:frameworks": "npm run build && node --test tests/frameworks.integration.mjs",
     "test:integration:redis": "npm run build && node --test tests/redis.integration.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:types",
     "benchmark": "npm run build && node bench/benchmark.mjs",
     "prepack": "npm run build",
     "scan:self": "npm run build && node dist/cli.js scan ."
   },
-  "repository": { "type": "git", "url": "git+https://github.com/AxiomNode-lab/AxiomGuard.git" },
-  "bugs": { "url": "https://github.com/AxiomNode-lab/AxiomGuard/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AxiomNode-lab/AxiomGuard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AxiomNode-lab/AxiomGuard/issues"
+  },
   "homepage": "https://github.com/AxiomNode-lab/AxiomGuard#readme",
-  "keywords": ["security", "typescript", "nodejs", "application-security", "webhooks", "api-keys", "idempotency", "fetch-metadata", "ssrf", "safe-fetch", "csp", "csrf", "cors", "rate-limit", "sarif", "secret-scanning", "developer-tools"],
+  "keywords": [
+    "axiomguard",
+    "security",
+    "typescript",
+    "nodejs",
+    "application-security",
+    "webhooks",
+    "api-keys",
+    "idempotency",
+    "fetch-metadata",
+    "ssrf",
+    "safe-fetch",
+    "csp",
+    "csrf",
+    "cors",
+    "rate-limit",
+    "sarif",
+    "secret-scanning",
+    "developer-tools",
+    "standard-webhooks",
+    "svix",
+    "helmet",
+    "idempotency-key",
+    "fetch-metadata"
+  ],
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
-  "engines": { "node": ">=20" },
-  "devDependencies": { "@types/node": "25.1.0", "typescript": "5.8.3" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@types/node": "25.1.0",
+    "typescript": "5.8.3"
+  }
 }

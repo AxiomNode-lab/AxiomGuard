@@ -52,7 +52,7 @@ test('Express adapter applies headers and handles allowed preflight', () => {
   const headers = new Map(); let ended = false; let nextCalls = 0;
   const middleware = createExpressSecurityMiddleware({ cors: { origins: ['https://app.example'], allowMethods: ['GET'] } });
   middleware(
-    { method: 'OPTIONS', headers: { origin: 'https://app.example' } },
+    { method: 'OPTIONS', headers: { origin: 'https://app.example', 'access-control-request-method': 'GET' } },
     { statusCode: 200, setHeader: (name, value) => headers.set(name, value), end: () => { ended = true; } },
     () => { nextCalls += 1; },
   );
@@ -69,7 +69,7 @@ test('Fastify adapter uses structural reply APIs without a runtime dependency', 
     code(value) { status = value; return this; },
     send() { sent = true; return this; },
   };
-  hook({ method: 'OPTIONS', headers: { origin: 'https://app.example' } }, reply);
+  hook({ method: 'OPTIONS', headers: { origin: 'https://app.example', 'access-control-request-method': 'GET' } }, reply);
   assert.equal(status, 204);
   assert.equal(sent, true);
   assert.equal(headers.get('Access-Control-Allow-Origin'), 'https://app.example');

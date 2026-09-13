@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-AxiomGuard is pre-1.0. Until a stable release exists, only the latest released minor version receives security fixes.
+AxiomGuard is pre-1.0. Until a stable release exists, only the latest released minor version receives security fixes. Security-relevant default changes are announced in [UPGRADING.md](UPGRADING.md).
 
 ## Reporting a vulnerability
 
@@ -21,7 +21,7 @@ AxiomGuard provides application-level guardrails. It does not replace:
 
 ### URL validation
 
-`assertSafeResolvedUrl` performs DNS lookup at validation time and rejects blocked addresses. DNS answers can change after validation. Callers should disable or explicitly validate redirects and enforce network-level egress restrictions for sensitive services.
+`assertSafeResolvedUrl` performs DNS lookup at validation time and rejects blocked addresses. DNS answers can change after validation. `safeFetch` re-validates every redirect and bounds time and size, but callers must still enforce network-level egress restrictions for sensitive services.
 
 ### Webhook validation
 

@@ -8,12 +8,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: test (node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 22, 24]
+        os: [ubuntu-latest]
+        include:
+          - { os: windows-latest, node: 24 }
+          - { os: macos-latest, node: 24 }
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -22,19 +33,43 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
-      - run: npm run test:coverage
-        if: matrix.node == 24
+      - run: npm run test:types
+      - name: Coverage with thresholds (Node 22+ only; Node 20 lacks the include/threshold flags)
+        if: matrix.node != 20 && matrix.os == 'ubuntu-latest'
+        run: npm run test:coverage -- --test-coverage-include='dist/**' --test-coverage-exclude='dist/adapters/redis.js' --test-coverage-lines=88 --test-coverage-functions=85 --test-coverage-branches=70
+      - name: Coverage report only (Node 20 cannot enforce thresholds)
+        if: matrix.node == 20
+        run: npm run test:coverage
       - run: npm run test:package
-        if: matrix.node == 24
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+      - name: Package shape (publint + arethetypeswrong)
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: |
+          npx --yes publint@0.3.12
+          npm pack --pack-destination "$RUNNER_TEMP" >/dev/null
+          # node16 profile: node10 resolution is irrelevant for a Node >= 20 ESM-only package.
+          npx --yes @arethetypeswrong/cli@0.18.5 "$RUNNER_TEMP"/axiomnode-lab-guard-*.tgz --profile node16 --ignore-rules cjs-resolves-to-esm
+      - name: Changelog mentions the package version
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: node -e "const v=require('./package.json').version; const c=require('node:fs').readFileSync('CHANGELOG.md','utf8'); if(!c.includes('## ['+v+']')) { console.error('CHANGELOG.md has no entry for '+v); process.exit(1) }"
       - name: Run informational benchmark
-        if: matrix.node == 24
-        run: npm run benchmark
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: npm run benchmark >> "$GITHUB_STEP_SUMMARY"
       - run: npm pack --dry-run
       - run: npm run scan:self
+      - name: Run the dependency-free examples
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        shell: bash
+        run: |
+          set -euo pipefail
+          for example in webhooks safe-fetch idempotent-endpoint edge-runtime; do node "examples/$example.mjs" >/dev/null; done
+          bash examples/scanner.sh >/dev/null
 
   framework-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -45,9 +80,12 @@ jobs:
       - name: Install pinned framework test dependencies
         run: npm install --no-save --package-lock=false express@5.2.1 fastify@5.12.1 hono@4.13.4
       - run: npm run test:integration:frameworks
+      - name: Run the Express example
+        run: EXAMPLE_SMOKE=1 PORT=3999 node examples/express-api.mjs
 
   redis-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       redis:
         image: redis:8-alpine
@@ -71,6 +109,7 @@ jobs:
 
   container-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Build release container locally
@@ -81,11 +120,13 @@ jobs:
           set -euo pipefail
           test "$(docker run --rm --entrypoint id axiomguard-ci -u)" != "0"
           docker run --rm axiomguard-ci --help >/tmp/axiomguard-help.txt
-          grep -q "AxiomGuard CLI" /tmp/axiomguard-help.txt
+          grep -q "AxiomGuard" /tmp/axiomguard-help.txt
+          docker run --rm axiomguard-ci --version
           docker run --rm -v "$PWD:/workspace:ro" axiomguard-ci scan /workspace --no-fail
 
   action-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Prepare safe workspace path containing spaces

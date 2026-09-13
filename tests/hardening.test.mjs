@@ -134,8 +134,8 @@ test('redaction covers provider-shaped live credentials and validates recursion 
 
 test('CSRF token clocks fail closed instead of bypassing freshness checks', () => {
   const secret = '0123456789abcdef0123456789abcdef';
-  const token = createCsrfToken(secret, { now: 1_000_000 });
-  assert.equal(verifyCsrfToken(token, secret, { now: 1_000_000 }), true);
-  assert.equal(verifyCsrfToken(token, secret, { now: Number.NaN }), false);
-  assert.throws(() => createCsrfToken(secret, { now: Number.NaN }), /now must be/);
+  const token = createCsrfToken(secret, { now: 1_000_000, sessionId: 'session' });
+  assert.equal(verifyCsrfToken(token, secret, { now: 1_000_000, sessionId: 'session' }), true);
+  assert.equal(verifyCsrfToken(token, secret, { now: Number.NaN, sessionId: 'session' }), false);
+  assert.throws(() => createCsrfToken(secret, { now: Number.NaN, sessionId: 'session' }), /now must be/);
 });
