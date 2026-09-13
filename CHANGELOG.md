@@ -42,7 +42,7 @@ Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.
 - Scanner: 20 new rules (PGP blocks, GitLab, AWS temporary keys, OpenAI, Anthropic, Google, npm, SendGrid, Hugging Face, DigitalOcean, Shopify, PyPI, Vault, age, Telegram, Slack webhook URLs, connection-string passwords), 40+ more file types including `.pem`/`.key`/`id_rsa`/`Dockerfile`/`.npmrc`, suffixed env names, placeholder and type-annotation suppression, `**/` matching top-level files, single-file targets, bounded concurrency, `listSecretRules`, SARIF `semanticVersion`/`ruleIndex`/`uriBaseId`/severities.
 - CLI: `--version`, `rules`, `--format`, `--exclude`, `--max-file-bytes`, `--quiet`; annotations on stderr as `::error` unless `--no-fail`; EPIPE-safe; `--write-baseline` resolves against the scan root.
 - GitHub Action honours absolute `config`/`baseline` inputs, only exports `sarif` when the file exists and passes `--no-fail` through. Container scans from `/workspace`.
-- `require()` support via `default` export conditions and a `./package.json` export; Biome linting; compile-only type tests; Windows/macOS CI; coverage thresholds; publint/arethetypeswrong checks; `UPGRADING.md`; runnable `examples/`.
+- `require()` support via `default` export conditions and a `./package.json` export; `UPGRADING.md`; runnable `examples/`.
 
 ### Changed
 
@@ -58,7 +58,7 @@ Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.
 - SARIF `helpUri` pointed at a missing README anchor.
 - `docs/RELEASE.md` and `docs/GITHUB_ACTION.md` described a stale release state.
 
-## [0.6.3] - 2026-08-27
+## [0.6.3] - 2026-08-27 (not published)
 
 ### Changed
 
@@ -67,7 +67,7 @@ Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.
 - Add a goal-oriented import map, CLI examples and clearer guidance for Express, Fastify, Hono, webhooks, idempotency, safe fetches, rate limiting, environment validation and redaction.
 - No runtime API or security-control behavior changed in this patch.
 
-## [0.6.2] - 2026-08-27
+## [0.6.2] - 2026-08-27 (not published)
 
 ### Changed
 

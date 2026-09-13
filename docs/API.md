@@ -7,7 +7,7 @@ Conventions that hold across the whole SDK:
 - **Operator errors throw, client input never does.** Invalid configuration (bad origins, short secrets, out-of-range TTLs) throws `TypeError`/`RangeError`, preferably at construction time. Malformed request data is reported as `false`, `null`, a reason string or a status.
 - **Comparisons of secret-derived data are constant-time.**
 - **Findings and logs never contain the secret value.**
-- **Every `now` option is a millisecond timestamp** so tests can inject a clock.
+- **Every `now` option is a millisecond timestamp** so you can inject your own clock (useful in test suites and replay tooling).
 
 ## `@axiomnode-lab/guard/crypto`
 
@@ -16,7 +16,7 @@ Conventions that hold across the whole SDK:
 | `secureToken(bytes = 32)` | URL-safe random token (`base64url`). |
 | `constantTimeCompare(left, right)` | Timing-safe equality for strings or Buffers of any length. |
 | `verifyHmacWebhook(payload, signature, secret, options?)` | Generic HMAC verification. Options: `algorithm` (`sha256`/`sha512`), `prefix` (default `${algorithm}=`, `''` for bare digests), `encoding` (`hex`/`base64`), `requirePrefix`. Throws on an empty secret. |
-| `signHmacWebhook(payload, secret, options?)` | Produce the signature `verifyHmacWebhook` accepts (tests, fixtures, outbound webhooks). |
+| `signHmacWebhook(payload, secret, options?)` | Produce the signature `verifyHmacWebhook` accepts — for outbound webhooks you send, or for your own test suites. |
 | `computeHmacSignature(payload, secret, options?)` | Same, returning `{ digest, signature }`. |
 | `decodeDigest(text, encoding, expectedBytes)` | Strict hex/base64 decoder; `null` unless canonical and the right length. |
 
@@ -31,7 +31,7 @@ Conventions that hold across the whole SDK:
 | `verifyMetaWebhook(payload, signature, appSecret)` | Meta/WhatsApp `X-Hub-Signature-256`. |
 | `verifyStandardWebhook(payload, { id, timestamp, signature }, secret, options?)` | [Standard Webhooks](https://www.standardwebhooks.com/) / Svix: signs `id.timestamp.payload`, `v1,<base64>` entries, `whsec_` secrets. Reasons add `invalid-id`; the id is the replay key. |
 | `verifyFreshHmacWebhook({ payload, signature, secret, timestamp }, options?)` | Generic HMAC + separate timestamp header. `signedInput: 'payload'` (default) or `'timestamp.payload'`; `toleranceSeconds` (300); `replayStore`; `replayTtlSeconds` (defaults to the tolerance — raise it when the timestamp is not signed); `replayKey` override. Replay keys are derived from the canonical HMAC. |
-| `createStripeSignatureHeader(payload, secret, timestamp)`, `createSlackSignature(payload, secret, timestamp)` | Build provider headers for tests and fixtures. |
+| `createStripeSignatureHeader(payload, secret, timestamp)`, `createSlackSignature(payload, secret, timestamp)` | Build provider-format headers, for example to exercise your webhook endpoint locally. |
 | `createWebhookReplayKey(signature)` | Hash an arbitrary string into a replay key. |
 | `MemoryReplayStore(maxEntries = 10000)` | Bounded single-process `ReplayStore` (`claim(key, expiresAt, now?)`); fails closed at capacity; `size`, `clear()`. Use the Redis adapters across instances. |
 
