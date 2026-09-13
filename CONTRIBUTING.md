@@ -16,7 +16,7 @@ Useful commands:
 | --- | --- |
 | `npm test` | build, then `node --test` (unit tests in `tests/*.test.mjs`) |
 | `npm run test:coverage` | the same with V8 coverage (thresholds are enforced in CI on Node 22+) |
-| `npm run test:types` | compile-only type assertions in `tests/types/*.test-d.ts` |
+| `npm run test:types` | compile-only type assertions in `tests/types (tsc -p tests/types/tsconfig.json)` |
 | `npm run lint` / `npm run lint:fix` | Biome (lint only; formatting is not enforced yet) |
 | `npm run test:package` | pack the tarball, install it in a clean directory and exercise imports, `require()`, types and the CLI |
 | `npm run test:integration:frameworks` | real Express/Fastify/Hono; first run `npm install --no-save --package-lock=false express@5.2.1 fastify@5.12.1 hono@4.13.4` |

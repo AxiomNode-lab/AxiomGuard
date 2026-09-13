@@ -152,7 +152,7 @@
     "lint": "biome lint",
     "lint:fix": "biome lint --write",
     "test": "npm run build && node --test",
-    "test:types": "npm run build && tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck --types node tests/types/*.test-d.ts",
+    "test:types": "npm run build && tsc -p tests/types/tsconfig.json",
     "test:coverage": "npm run build && node --test --experimental-test-coverage",
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "test:integration:frameworks": "npm run build && node --test tests/frameworks.integration.mjs",
