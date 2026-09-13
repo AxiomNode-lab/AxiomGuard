@@ -43,7 +43,7 @@ test('redactSecrets redacts camelCase, hyphenated and extra keys and keeps __pro
 
 test('redactSecrets string patterns cover JWTs, provider keys, basic auth and connection strings', () => {
   const jwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'].join('.');
-  const text = [`jwt=${jwt}`, `openai=${['sk-', 'a'.repeat(20), 'T3BlbkFJ', 'b'.repeat(20)].join('')}`, `google=${['AIza', 'x'.repeat(35)].join('')}`, 'basic=Basic dXNlcjpwYXNz', 'db=postgres://app:P4ssw0rd@db/app', 'hdr=Bearer abcdefghijklmnop'].join(' ');
+  const text = [`jwt=${jwt}`, `openai=${['sk-', 'a'.repeat(20), 'T3BlbkFJ', 'b'.repeat(20)].join('')}`, `google=${['AIza', 'x'.repeat(35)].join('')}`, 'basic=Basic dXNlcjpwYXNz', ['db=postgres://app:', 'P4ssw0rd', '@db/app'].join(''), 'hdr=Bearer abcdefghijklmnop'].join(' ');
   const out = redactSecrets({ text }).text;
   assert.equal(out, 'jwt=[REDACTED] openai=[REDACTED] google=[REDACTED] basic=Basic [REDACTED] db=[REDACTED]db/app hdr=Bearer [REDACTED]');
 });

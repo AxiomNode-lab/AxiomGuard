@@ -40,8 +40,11 @@ export interface VerifyHmacWebhookOptions {
 
 export type SignHmacWebhookOptions = Pick<VerifyHmacWebhookOptions, 'algorithm' | 'prefix' | 'encoding'>;
 
-function assertSecret(secret: string): void {
-  if (typeof secret !== 'string' || secret.length === 0) throw new TypeError('secret must be a non-empty string');
+/** HMAC secrets may be text or raw bytes (for example a decoded `whsec_` secret). */
+export type HmacSecret = string | Buffer;
+
+function assertSecret(secret: HmacSecret): void {
+  if (typeof secret === 'string' ? secret.length === 0 : !Buffer.isBuffer(secret) || secret.length === 0) throw new TypeError('secret must be a non-empty string or Buffer');
 }
 
 function resolveAlgorithm(algorithm: HmacAlgorithm | undefined): HmacAlgorithm {
@@ -73,7 +76,7 @@ export function decodeDigest(text: string, encoding: HmacEncoding, expectedBytes
  * accepts. The result is the textual signature (including prefix) a provider
  * would send.
  */
-export function computeHmacSignature(payload: string | Buffer, secret: string, options: SignHmacWebhookOptions = {}): { digest: Buffer; signature: string } {
+export function computeHmacSignature(payload: string | Buffer, secret: HmacSecret, options: SignHmacWebhookOptions = {}): { digest: Buffer; signature: string } {
   assertSecret(secret);
   const algorithm = resolveAlgorithm(options.algorithm);
   const encoding = resolveEncoding(options.encoding);
@@ -83,7 +86,7 @@ export function computeHmacSignature(payload: string | Buffer, secret: string, o
 }
 
 /** Sign a payload the way a webhook provider would. Useful for tests, fixtures and outbound webhooks. */
-export function signHmacWebhook(payload: string | Buffer, secret: string, options: SignHmacWebhookOptions = {}): string {
+export function signHmacWebhook(payload: string | Buffer, secret: HmacSecret, options: SignHmacWebhookOptions = {}): string {
   return computeHmacSignature(payload, secret, options).signature;
 }
 
@@ -97,7 +100,7 @@ export function signHmacWebhook(payload: string | Buffer, secret: string, option
 export function verifyHmacWebhook(
   payload: string | Buffer,
   signature: string | undefined | null,
-  secret: string,
+  secret: HmacSecret,
   options: VerifyHmacWebhookOptions = {},
 ): boolean {
   assertSecret(secret);

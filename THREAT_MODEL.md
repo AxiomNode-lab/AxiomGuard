@@ -40,23 +40,27 @@ HMAC helpers verify signatures before accepting payloads. Stripe-style verificat
 
 ### CSRF and browser request policy
 
-CSRF tokens are signed, expiring and optionally session-bound. `evaluateRequestPolicy` can reject unsafe browser requests using Fetch Metadata and strict Origin fallback. It deliberately treats `same-site` as weaker than `same-origin` by default and rejects `Origin: null` for unsafe methods. Missing browser metadata is not automatically trusted; machine-to-machine callers require an explicit policy choice.
+CSRF tokens are signed, expiring and session-bound; unbound tokens must be requested explicitly for the signed double-submit cookie pattern. `evaluateRequestPolicy` can reject unsafe browser requests using Fetch Metadata and strict Origin fallback. It deliberately treats `same-site` as weaker than `same-origin` by default and rejects `Origin: null` for unsafe methods. Missing browser metadata is not automatically trusted; machine-to-machine callers require an explicit policy choice.
 
 These controls do not replace authentication, application authorization, correct use of side-effect-free HTTP methods, or transaction-level anti-replay rules. CORS controls browser read access and does not authenticate a caller. HSTS and cross-origin isolation are deployment commitments and are therefore not silently enabled by generic presets.
 
 ### Idempotency
 
-Idempotency helpers hash raw client keys before storage and fingerprint method, request target, normalized content type and raw body. A live key can be accepted once, recognized as a same-request replay, or rejected as conflicting reuse. The in-memory store is bounded and fails closed at capacity. Redis adapters use one atomic Lua operation with TTL.
+Idempotency helpers hash raw client keys together with a caller scope before storage and fingerprint method, request target, normalized content type and raw body. Without a scope, distinct callers presenting the same key collide; applications must pass the authenticated principal or tenant. A live key can be accepted once, recognized as a same-request replay, or rejected as conflicting reuse. The in-memory store is bounded and fails closed at capacity. Redis adapters use one atomic Lua operation with TTL.
 
 The module does not store or replay an application response and does not make a database transaction atomic. APIs that promise deterministic replay must combine AxiomGuard's claim with durable result storage and business transaction semantics. An attacker who obtains a valid client idempotency key may still replay the same request unless authentication/authorization and application policy reject it.
 
 ### SSRF and outbound fetches
 
-URL checks reject localhost, private/link-local/multicast/reserved address families and risky IPv6 transition forms. DNS results are checked before use and redirects are revalidated. `safeFetch` strips sensitive credentials on cross-origin redirects and refuses silent request-body replay. These checks do **not** pin the validated DNS answer to the actual socket. High-risk workloads must also enforce egress firewall/proxy policy and protect cloud metadata endpoints at the network layer.
+URL checks reject localhost (including trailing-dot forms), private/link-local/multicast/reserved/documentation address families and IPv6 transition, mapped, translated and NAT64 forms. DNS results are checked before use and redirects are revalidated. `safeFetch` refuses https→http downgrades, strips credential-bearing headers on cross-origin redirects, refuses silent request-body replay, and keeps its timeout and size cap in force while the response body streams. These checks do **not** pin the validated DNS answer to the actual socket. High-risk workloads must also enforce egress firewall/proxy policy and protect cloud metadata endpoints at the network layer.
 
 ### Rate limiting
 
-The fixed-window limiter is an abuse-control primitive, not authentication. The memory store is bounded and intended for one process. Distributed deployments require a shared store such as Redis. Redis integrity/availability failures are surfaced rather than treated as successful claims.
+The fixed-window limiter is an abuse-control primitive, not authentication. Client identity must come from the socket address or from `X-Forwarded-For` hops added by trusted proxies (`getClientIp` with an explicit proxy count); anything the client could have written is ignored. The memory store is bounded and intended for one process. Distributed deployments require a shared store such as Redis. Redis integrity/availability failures are surfaced rather than treated as successful claims.
+
+### CORS and framework adapters
+
+Client-controlled headers (`Origin`, `Sec-Fetch-Site`, `Access-Control-Request-*`) are parsed defensively and never raise; a malformed or opaque origin is simply not allowed. Configuration is validated once at construction so a misconfigured adapter fails at startup rather than serving traffic. `Vary: Origin` is always emitted for non-wildcard policies so shared caches cannot serve one origin's response to another.
 
 ### Scanner and redaction
 
@@ -65,6 +69,13 @@ The repository scanner is intentionally conservative and can have false positive
 ## Abuse cases considered
 
 - Cross-site unsafe browser requests with forged ordinary headers or missing Fetch Metadata.
+- `Origin: null`, malformed or duplicated `Origin` headers sent to crash or confuse CORS handling.
+- Re-encoded webhook signatures used to mint fresh replay keys, and captured payload-only signatures replayed under a new timestamp.
+- Idempotency keys reused across tenants.
+- Slow or oversized response bodies after `safeFetch` validation, and https→http redirect downgrades leaking headers in cleartext.
+- Trailing-dot and IPv4-translated address spellings of loopback targets.
+- Filenames carrying bidirectional overrides, zero-width or C1 characters, or multi-byte sequences that exceed filesystem limits when truncated naively.
+- Spoofed `X-Forwarded-For` entries used to escape or poison rate-limit buckets.
 - `same-site` requests crossing a less-trusted sibling origin.
 - Reuse of an idempotency key for a different request body or target.
 - High-cardinality idempotency, rate-limit or replay keys causing memory pressure.

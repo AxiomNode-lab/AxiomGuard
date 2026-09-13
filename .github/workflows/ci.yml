@@ -57,6 +57,13 @@ jobs:
         run: npm run benchmark >> "$GITHUB_STEP_SUMMARY"
       - run: npm pack --dry-run
       - run: npm run scan:self
+      - name: Run the dependency-free examples
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        shell: bash
+        run: |
+          set -euo pipefail
+          for example in webhooks safe-fetch idempotent-endpoint edge-runtime; do node "examples/$example.mjs" >/dev/null; done
+          bash examples/scanner.sh >/dev/null
 
   framework-integration:
     runs-on: ubuntu-latest
@@ -71,6 +78,8 @@ jobs:
       - name: Install pinned framework test dependencies
         run: npm install --no-save --package-lock=false express@5.2.1 fastify@5.12.1 hono@4.13.4
       - run: npm run test:integration:frameworks
+      - name: Run the Express example
+        run: EXAMPLE_SMOKE=1 PORT=3999 node examples/express-api.mjs
 
   redis-integration:
     runs-on: ubuntu-latest

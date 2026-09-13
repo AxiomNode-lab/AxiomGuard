@@ -1,6 +1,62 @@
 # Changelog
 
-All notable changes to this project are documented here.
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
+follows semantic versioning in intent (pre-1.0 minors may change defaults; see
+[UPGRADING.md](UPGRADING.md)).
+
+## [0.7.0] - 2026-09-13
+
+Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
+
+### Security
+
+- `verifyFreshHmacWebhook` keys replay claims on the canonical computed HMAC; re-encoding a signature (case, prefix) no longer produces a fresh replay key.
+- `verifyFreshHmacWebhook` gains `signedInput: 'timestamp.payload'` and `replayTtlSeconds` so freshness can be bound into the signature or the replay window widened when the provider signs the body only.
+- Stripe verification signs the literal `t=` text; GitHub and Meta helpers require the `sha256=` prefix; Slack timestamps are parsed strictly; empty secrets throw instead of rejecting silently.
+- CSRF tokens require a session binding unless `allowUnbound` is set; verification throws on operator errors, bounds token size and rejects non-canonical signatures.
+- Idempotency claims can be scoped per tenant (`scope`), closing a cross-caller replay/denial.
+- Bounded memory stores sweep only when an entry can have expired, removing an O(n)-per-call cost once saturated.
+- `assertSafeUrl` normalises trailing-dot hostnames (`localhost.` was accepted) and blocks IPv4-translated, local-use NAT64, discard-only and documentation IPv6 prefixes; `allowedHosts` matches exactly with explicit `*.` wildcards.
+- `safeFetch` keeps the timeout and caller signal in force while the body streams, adds `maxResponseBytes`, rejects https→http downgrades by default, strips `x-api-key`/`x-auth-token` across origins and cancels redirect bodies before rejecting a target.
+- `sanitizeFilename` strips DEL, C1 and Unicode format characters (RLO, ZWSP), truncates by UTF-8 bytes without splitting code points and neutralises leading dots; `safePath` rejects NUL bytes.
+- CORS and the Express/Fastify/Hono adapters no longer turn client-controlled `Origin` values (`null`, malformed, duplicated) into 500 responses; `Vary: Origin` is always emitted for non-wildcard policies; preflight-only headers are only sent on real preflights; `allowNullOrigin` with credentials is rejected.
+- `redactSecrets` matches camelCase/hyphenated keys (`accessToken`, `clientSecret`, `x-api-key`), keeps `__proto__` as data, and adds JWT, OpenAI, Anthropic, Google, GitLab, npm, SendGrid, Hugging Face, Slack webhook, Basic-auth and URL-password patterns.
+- Security headers emit `X-XSS-Protection: 0`; HSTS `preload` is validated; presets add `form-action`, `script-src-attr` and `upgrade-insecure-requests`.
+- `getClientIp` derives a rate-limit key from `X-Forwarded-For` with an explicit trusted-proxy count so the header cannot be spoofed.
+- `env` `url` values reject embedded credentials and are no longer rewritten; prototype properties are ignored.
+
+### Added
+
+- Standard Webhooks (Svix-compatible) verification, base64 digests and `requirePrefix` for `verifyHmacWebhook`, `signHmacWebhook`, `computeHmacSignature`, `decodeDigest`, `createStripeSignatureHeader`, `createSlackSignature`.
+- `parseApiKey`, peppered `hashApiKey`/`verifyApiKey`; base62 token alphabet so tokens are parseable.
+- `claimIdempotencyKey` accepts raw header values and reports `missing-key`/`invalid-key`.
+- `createRequestPolicy` (validated once, reusable), `allowCrossSiteFromAllowedOrigins`, table-driven decision matrix test.
+- `createCorsPolicy`, `allowHeaders: 'reflect'`, request-context aware `createCorsHeaders`.
+- `createFetchSecurityHandler`/`applySecurityHeaders` for Web-standard runtimes (Next.js middleware, SvelteKit, Cloudflare, Bun, Deno); `createSecurityCore` shared by all adapters; per-request `headers` functions for CSP nonces; `removePoweredBy`; `Vary` merging.
+- `cspNonceSource`, valueless CSP directives via `true`, `xssProtection` option.
+- `parseCookies`, `clearCookie`, cookie size cap and attribute validation.
+- `getClientIp`, `rateLimitBucketForIp`.
+- Typed `requireEnv`/`validateEnv` (`InferEnv`), `list` and `duration` types, `allowCredentials` for URLs.
+- `validateRedirect` `base` option and protocol-relative rejection; `SafeUrlError`/`SafeFetchError` with stable `code`s; `normalizeHostname`; `dangerouslyAllowPrivateTargets`; `redirect: 'manual'`.
+- Scanner: 20 new rules (PGP blocks, GitLab, AWS temporary keys, OpenAI, Anthropic, Google, npm, SendGrid, Hugging Face, DigitalOcean, Shopify, PyPI, Vault, age, Telegram, Slack webhook URLs, connection-string passwords), 40+ more file types including `.pem`/`.key`/`id_rsa`/`Dockerfile`/`.npmrc`, suffixed env names, placeholder and type-annotation suppression, `**/` matching top-level files, single-file targets, bounded concurrency, `listSecretRules`, SARIF `semanticVersion`/`ruleIndex`/`uriBaseId`/severities.
+- CLI: `--version`, `rules`, `--format`, `--exclude`, `--max-file-bytes`, `--quiet`; annotations on stderr as `::error` unless `--no-fail`; EPIPE-safe; `--write-baseline` resolves against the scan root.
+- GitHub Action honours absolute `config`/`baseline` inputs, only exports `sarif` when the file exists and passes `--no-fail` through. Container scans from `/workspace`.
+- `require()` support via `default` export conditions and a `./package.json` export; Biome linting; compile-only type tests; Windows/macOS CI; coverage thresholds; publint/arethetypeswrong checks; `UPGRADING.md`; runnable `examples/`.
+
+### Changed
+
+- Source maps are no longer shipped (they referenced absent sources and broke Node 20 coverage); tarball trimmed to user-facing docs.
+- `npm test` runs `node --test` without a shell glob.
+- Stricter TypeScript flags (`verbatimModuleSyntax`, `noUnusedLocals`, …).
+
+### Fixed
+
+- `redactSecrets` collapsed `Error`, `Date`, `Map`, `Set`, `URL` and `RegExp` to `{}` and dumped `Buffer` bytes as index objects.
+- `maskPII` mangled ISO timestamps, epochs, UUIDs and coordinates as phone numbers.
+- `--json --github-annotations` corrupted stdout; a closed stdout pipe crashed the CLI.
+- SARIF `helpUri` pointed at a missing README anchor.
+- `docs/RELEASE.md` and `docs/GITHUB_ACTION.md` described a stale release state.
 
 ## [0.6.3] - 2026-08-27
 
@@ -172,3 +228,5 @@ All notable changes to this project are documented here.
 - Fresh webhook verification with replay-store abstraction.
 - CSP builder and framework-neutral security headers.
 - GitHub Packages and GHCR delivery workflows.
+
+[0.7.0]: https://github.com/AxiomNode-lab/AxiomGuard/compare/v0.6.1...v0.7.0

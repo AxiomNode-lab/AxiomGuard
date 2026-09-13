@@ -1,9 +1,21 @@
 # GitHub Packages visibility and organization display
 
-AxiomGuard publishes two package types:
+AxiomGuard publishes to three registries:
 
-- npm: `@axiomnode-lab/guard` through GitHub Packages
+- npmjs: `@axiomnode-lab/guard` — the recommended install path (`npm install @axiomnode-lab/guard`), no authentication required
+- GitHub Packages: `@axiomnode-lab/guard` — a mirror; GitHub's npm registry requires authentication even for public packages
 - container: `ghcr.io/axiomnode-lab/axiomguard`
+
+## Installing from GitHub Packages
+
+Only needed when your organization mirrors dependencies through GitHub Packages. Add to the project's `.npmrc`:
+
+```ini
+@axiomnode-lab:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+and export a token with the `read:packages` scope as `GITHUB_TOKEN`. Prefer npmjs otherwise.
 
 GitHub's npm registry and Container registry use granular package permissions. A newly created package can be private even when the source repository is public. Package visibility is managed on the package itself, not by `package.json` alone.
 

@@ -4,16 +4,9 @@ AxiomGuard publishes immutable package versions. A version is advanced before so
 
 ## Current public line
 
-The current source/package line is `0.6.1`.
+Source is at the version in `package.json`. As of 2026-09-13 the last version published to npmjs and tagged on GitHub is `0.6.1`; `0.6.2` and `0.6.3` exist only in this changelog and were never released. `0.7.0` is the next release and must be cut by creating the `v0.7.0` GitHub Release from a qualified `main` commit, which triggers the npmjs (Trusted Publishing), GitHub Packages and GHCR workflows. Verify each artifact independently afterwards (`npm view @axiomnode-lab/guard versions`, `gh release view v0.7.0`, `docker pull ghcr.io/axiomnode-lab/axiomguard:0.7.0`).
 
-Verified distribution state for 0.6.1:
-
-- GitHub Packages: `@axiomnode-lab/guard@0.6.1` published and read back by the repository workflow.
-- npmjs: `@axiomnode-lab/guard@0.6.1` manually bootstrapped as a public package, read back with `npm view`, and installed from `registry.npmjs.org`.
-- GHCR edge/commit path: the post-merge container workflow completed successfully.
-- GitHub Release/tag: not considered verified until an actual `v0.6.1` release exists and its release-triggered workflows complete.
-
-`0.6.0` should not be presented as the recommended CLI distribution. Its GitHub Packages publish succeeded as a library package, but npm 11 removed its CLI mapping during publish normalization. The corrected immutable distribution is `0.6.1`.
+`0.6.0` should not be presented as the recommended CLI distribution: its GitHub Packages publish succeeded as a library package, but npm 11 removed its CLI mapping during publish normalization. The corrected immutable distribution of that line is `0.6.1`.
 
 ## npmjs
 
@@ -60,10 +53,11 @@ A release tag must exactly match `v${package.json version}` before release conta
 
 Before a version is eligible for a public GitHub Release, the exact source commit should pass:
 
-- Node.js 20, 22 and 24 qualification
-- TypeScript type checking
+- Node.js 20, 22 and 24 qualification on Linux; Node 24 on Windows and macOS
+- TypeScript type checking, Biome lint and compile-only type tests
 - unit/regression tests
-- Node 24 coverage
+- coverage thresholds on Node 22 and 24
+- publint and arethetypeswrong package-shape checks
 - real packed-tarball clean-room install
 - package root/subpath import and TypeScript declaration checks
 - installed `axiomguard` CLI shim execution
@@ -77,26 +71,15 @@ Before a version is eligible for a public GitHub Release, the exact source commi
 
 Published artifacts must then be verified independently. Source version alone is never treated as proof that a registry, release, image, SBOM, or provenance artifact exists.
 
-## 0.6.1 release completion
+## Cutting a release
 
-The remaining completion sequence for 0.6.1 is:
-
-1. Keep npmjs `@axiomnode-lab/guard@0.6.1` as the public package of record for the 0.6 line.
-2. Keep the configured npm Trusted Publisher bound to `AxiomNode-lab/AxiomGuard` and `publish-npmjs.yml` with `npm publish` permission.
-3. Create GitHub Release/tag `v0.6.1` from the qualified `main` commit.
-4. Confirm the release-triggered npmjs workflow detects 0.6.1 already exists and exits successfully without attempting a divergent republish.
-5. Confirm the release-triggered GHCR workflow emits `0.6.1`, `0.6`, and `latest` tags and completes with SBOM/provenance enabled.
-6. Verify the immutable GitHub Action reference `AxiomNode-lab/AxiomGuard@v0.6.1` before documenting it as the production example.
-7. Update README release wording only after the GitHub Release and release-triggered artifact checks are confirmed.
-
-## Later versions
-
-1. Advance `package.json` and `package-lock.json` together.
-2. Update the changelog and release notes.
-3. Merge only after required qualification passes.
-4. Create a GitHub Release whose tag exactly matches the package version.
+1. Advance `package.json` and `package-lock.json` together (`npm version --no-git-tag-version <x.y.z>`).
+2. Add the `## [x.y.z]` entry to `CHANGELOG.md` (CI fails without it) and any migration notes to `UPGRADING.md`.
+3. Merge only after required qualification passes (`npm run check`, integration jobs, Windows/macOS jobs).
+4. Create a GitHub Release whose tag exactly matches the package version (`gh release create vx.y.z --generate-notes`); `.github/release.yml` groups the notes by label.
 5. Let npmjs Trusted Publishing and GHCR release workflows run from the release event.
-6. Verify every claimed registry/release artifact independently.
+6. Verify every claimed registry/release artifact independently, including `npm view @axiomnode-lab/guard@x.y.z dist.attestations` for provenance.
+7. Update the `uses: AxiomNode-lab/AxiomGuard@vx.y.z` example in `docs/GITHUB_ACTION.md` and the container tag in `docs/GITHUB_ACTION.md`/`README.md`.
 
 ## Versioning
 

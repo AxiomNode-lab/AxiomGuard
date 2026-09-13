@@ -45,7 +45,9 @@ app.use(createExpressSecurityMiddleware({
 }));
 ```
 
-Allowed `OPTIONS` requests receive a 204 response by default. Set `handlePreflight: false` if another middleware owns preflight handling.
+CORS preflights (`OPTIONS` with `Access-Control-Request-Method` from an allowed origin) receive a 204 response by default; other `OPTIONS` requests reach your routes. Set `handlePreflight: false` if another middleware owns preflight handling.
+
+Headers are set before your handlers run, so a handler can override them. `Vary` is merged with values set by earlier middleware and `X-Powered-By` is removed (`removePoweredBy: false` keeps it).
 
 ## Fastify
 
@@ -75,7 +77,51 @@ app.use('*', createHonoSecurityMiddleware({
 }));
 ```
 
-For normal requests, headers are applied after `await next()` so the adapter owns the final defensive values. Allowed preflight requests return a 204 `Response` directly. Request-policy blocks return before downstream handlers run.
+For normal requests, headers are applied after `await next()` so the adapter owns the final defensive values (a handler cannot weaken `X-Frame-Options`); `Vary` is merged. Allowed preflight requests return a 204 `Response` directly. Request-policy blocks return before downstream handlers run.
+
+## Web-standard runtimes
+
+`createFetchSecurityHandler` wraps any `(Request) => Response` function and works wherever the Fetch API is the HTTP layer: Next.js middleware and route handlers, SvelteKit `handle`, Cloudflare Workers, Deno, Bun, Vercel Edge.
+
+```ts
+import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
+
+const guard = createFetchSecurityHandler({
+  cors: { origins: ['https://app.example.com'] },
+  requestPolicy: { allowedOrigins: ['https://app.example.com'] },
+});
+
+export default { fetch: (request: Request) => guard(request, (req) => router.handle(req)) };
+```
+
+`applySecurityHeaders(headers, request, options)` does the same for frameworks that hand you a mutable `Headers` object. NestJS users apply the Express or Fastify adapter to the underlying instance (`app.use(...)` or `app.getHttpAdapter().getInstance().addHook('onRequest', ...)`). Koa can be wired in a few lines on top of `createSecurityCore`.
+
+## Shared behaviour and options
+
+All adapters call `createSecurityCore(options)` once at construction. It validates every option (bad origins, wildcard with credentials, invalid tokens, out-of-range statuses) and throws immediately, so misconfiguration never reaches production traffic. Per request it evaluates security headers, CORS and the optional request policy and returns `preflight`, `blocked` or `continue`; use it directly to build an adapter for another framework.
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `headers` | conservative defaults | `SecurityHeadersOptions`, `false`, or `(request) => SecurityHeadersOptions` for per-request CSP nonces |
+| `cors` | disabled | `CorsOptions`; client-controlled `Origin` values never throw |
+| `handlePreflight` | `true` | answer real preflights with `preflightStatus` (204) |
+| `requestPolicy` | disabled | `RequestPolicyOptions`; blocked requests get `requestPolicyStatus` (403) |
+| `removePoweredBy` | `true` | strips `X-Powered-By` where the framework allows |
+
+Per-request CSP nonce example:
+
+```ts
+import { createCspNonce, cspNonceSource } from '@axiomnode-lab/guard/headers';
+
+createExpressSecurityMiddleware({
+  headers: () => {
+    const nonce = createCspNonce();
+    return { contentSecurityPolicy: { 'default-src': ["'self'"], 'script-src': ["'self'", cspNonceSource(nonce)] } };
+  },
+});
+```
+
+(Store the nonce on the request or response locals so templates can read it.)
 
 ## Redis replay protection
 
