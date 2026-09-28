@@ -36,7 +36,7 @@ Useful commands:
 
 ## Style
 
-Two-space indentation, single quotes, semicolons, trailing commas, explicit return types on exported functions. Prefer small pure functions and typed error classes with stable `code`s over string matching. Operator misconfiguration should throw at construction time; client-controlled input must never throw.
+Two-space indentation, single quotes, semicolons, trailing commas, explicit return types on exported functions. Prefer small pure functions and typed error classes with stable `code`s over string matching. Operator misconfiguration should throw at construction time; request-facing adapters should handle malformed client-controlled metadata defensively.
 
 ## Commit messages and releases
 
