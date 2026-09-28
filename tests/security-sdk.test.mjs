@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, redactSecrets, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
 
+test('cors blocks Origin null under wildcard policy unless explicitly enabled', () => {
+  assert.equal(createCorsHeaders('null', { origins: '*' }), null);
+  assert.equal(createCorsHeaders('null', { origins: '*', allowNullOrigin: true }), undefined);
+});
+
 test('cors rejects string booleans in security options', () => {
   assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowNullOrigin: 'false' }), /allowNullOrigin must be a boolean/);
   assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowCredentials: 'false' }), /allowCredentials must be a boolean/);
