@@ -63,7 +63,7 @@ runs:
         const root = path.resolve(rootArg);
         const candidate = path.resolve(root, input);
         if (candidate !== root && !candidate.startsWith(root + path.sep)) {
-          process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\\n');
+          process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\n');
           process.exit(2);
         }
         process.stdout.write(candidate);
