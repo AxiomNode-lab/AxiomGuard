@@ -111,6 +111,13 @@ function normalizeSafeMethods(values: readonly string[] | undefined): Set<string
 export function createRequestPolicy(options: RequestPolicyOptions = {}): CompiledRequestPolicy {
   const safeMethods = normalizeSafeMethods(options.safeMethods);
   const allowedOrigins = new Set((options.allowedOrigins ?? []).map(normalizeConfiguredOrigin));
+  for (const [name, value] of [
+    ['allowSameSite', options.allowSameSite],
+    ['allowNoOrigin', options.allowNoOrigin],
+    ['allowCrossSiteFromAllowedOrigins', options.allowCrossSiteFromAllowedOrigins],
+  ] as const) {
+    if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+  }
   const allowSameSite = options.allowSameSite === true;
   const allowNoOrigin = options.allowNoOrigin === true;
   const allowCrossSite = options.allowCrossSiteFromAllowedOrigins === true;
