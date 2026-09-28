@@ -115,7 +115,7 @@ app.use('*', createHonoSecurityMiddleware({
 }));
 ```
 
-### Web-standard runtimes (Next.js middleware, SvelteKit, Cloudflare Workers, Bun, Deno)
+### Web-standard Fetch runtimes (Cloudflare Workers, Deno, Bun, and compatible framework runtimes)
 
 ```ts
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
@@ -462,7 +462,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [API reference](docs/API.md)
 - [Upgrading between versions](UPGRADING.md)
 - [Comparison with other libraries](docs/COMPARISON.md)
-- [Examples](https://github.com/AxiomNode-lab/AxiomGuard/tree/v0.7.1/examples)
+- [Examples](https://github.com/AxiomNode-lab/AxiomGuard/tree/main/examples)
 - [API protection](docs/API_PROTECTION.md)
 - [Framework adapters](docs/ADAPTERS.md)
 - [Safe fetch](docs/SAFE_FETCH.md)
