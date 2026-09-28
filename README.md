@@ -415,7 +415,7 @@ import { safeFetch } from '@axiomnode-lab/guard/fetch';
 import { redactSecrets } from '@axiomnode-lab/guard/logging';
 ```
 
-Subpath imports make the capability being used explicit and are the recommended style in larger services.
+Subpath imports make the capability being used explicit and are useful when an application only needs one part of the toolkit.
 
 ## Package entry points
 
