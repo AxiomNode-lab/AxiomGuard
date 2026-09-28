@@ -74,6 +74,8 @@ export function blockedRequestStatus(options: SecurityAdapterOptions): number {
  * browser request policy.
  */
 export function createSecurityCore(options: SecurityAdapterOptions = {}): SecurityCore {
+  if (options.handlePreflight !== undefined && typeof options.handlePreflight !== 'boolean') throw new TypeError('handlePreflight must be a boolean');
+  if (options.removePoweredBy !== undefined && typeof options.removePoweredBy !== 'boolean') throw new TypeError('removePoweredBy must be a boolean');
   const status = preflightStatus(options);
   const deniedStatus = blockedRequestStatus(options);
   const handlePreflight = options.handlePreflight ?? true;
