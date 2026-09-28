@@ -8,6 +8,8 @@ test('secure cookies enforce host prefix invariants', () => {
   assert.match(value, /Secure/); assert.match(value, /HttpOnly/); assert.match(value, /Path=\//);
   assert.throws(() => serializeCookie('__Host-session', 'abc', { domain: 'example.com' }));
   assert.throws(() => serializeCookie('session', 'abc', { sameSite: 'None', secure: false }));
+  assert.throws(() => serializeCookie('session', 'abc', { sameSite: 'bad' }));
+  assert.throws(() => serializeCookie('session', 'abc', { priority: 'High; Set-Cookie: evil=true' }));
 });
 
 test('cors rejects unsafe policies and varies explicit origins', () => {
