@@ -170,6 +170,12 @@ function hostMatches(hostname: string, allowedHosts: readonly string[]): boolean
  */
 export function assertSafeUrl(input: string | URL, options: SafeUrlOptions = {}): URL {
   const url = input instanceof URL ? new URL(input.toString()) : new URL(input);
+  if (options.protocols !== undefined && (!Array.isArray(options.protocols) || options.protocols.some((protocol) => protocol !== 'http:' && protocol !== 'https:'))) {
+    throw new TypeError("protocols must contain only 'http:' and 'https:'");
+  }
+  for (const [name, value] of [['allowCredentials', options.allowCredentials], ['dangerouslyAllowPrivateTargets', options.dangerouslyAllowPrivateTargets]] as const) {
+    if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+  }
   const protocols = options.protocols ?? ['https:', 'http:'];
 
   if (!protocols.includes(url.protocol as 'http:' | 'https:')) {
