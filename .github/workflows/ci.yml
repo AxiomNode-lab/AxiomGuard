@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - run: node scripts/check-workflows.mjs
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
