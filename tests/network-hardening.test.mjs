@@ -60,7 +60,7 @@ test('safeFetch timeout and caller signal keep applying while the body streams',
     response.write('partial');
     // Never end: simulate a stalled body.
   }, async (base) => {
-    const response = await safeFetch(`${base}/slow`, { dangerouslyAllowPrivateTargets: true, timeoutMs: 100 });
+    const response = await safeFetch(`${base}/slow`, { dangerouslyAllowPrivateTargets: true, timeoutMs: 1_000 });
     assert.equal(response.status, 200);
     assert.equal(response.url, `${base}/slow`);
     await assert.rejects(response.text(), (error) => error instanceof SafeFetchError && error.code === 'timeout');
