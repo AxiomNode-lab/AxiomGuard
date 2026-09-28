@@ -30,6 +30,13 @@ test('verifyFreshHmacWebhook replay claim is keyed on the canonical signature, n
   assert.deepEqual(await verifyFreshHmacWebhook({ payload, signature: hex, secret, timestamp: TS }, { now: NOW, replayStore: store }), { ok: false, reason: 'replay' });
 });
 
+test('verifyFreshHmacWebhook rejects invalid signedInput configuration', async () => {
+  await assert.rejects(
+    () => verifyFreshHmacWebhook({ payload: 'body', signature: '', secret: 'test-secret', timestamp: String(Math.floor(Date.now() / 1000)) }, { signedInput: 'invalid-mode' }),
+    /signedInput must be/,
+  );
+});
+
 test('verifyFreshHmacWebhook can bind the timestamp into the signed input', async () => {
   const payload = 'body';
   const secret = 'test-secret';
