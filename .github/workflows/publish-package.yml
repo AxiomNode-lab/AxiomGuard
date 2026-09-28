@@ -1,15 +1,7 @@
-name: Publish npm package
+name: Publish GitHub Packages
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - package.json
-      - package-lock.json
-      - src/**
-      - scripts/verify-package.mjs
-      - .github/workflows/publish-package.yml
   release:
     types: [published]
 
