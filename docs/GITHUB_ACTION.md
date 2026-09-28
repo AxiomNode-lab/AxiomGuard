@@ -70,8 +70,6 @@ For an existing repository with known findings, start in audit mode rather than 
 
 Review the results, create a baseline only for accepted existing findings, commit that baseline, then switch `fail-on-findings` back to `true`. Baselines use non-secret fingerprints; moved or newly introduced findings become visible again.
 
-After a release is published, replace `@main` with the release tag or immutable release commit SHA. Do not infer that a version string in `package.json` creates a usable GitHub Action tag; the Git ref must exist separately.
-
 ## Running the container instead
 
 The published image scans a mounted workspace without Node.js on the runner:
