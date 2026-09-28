@@ -152,6 +152,17 @@ jobs:
           path: 'tests/action fixture'
           fail-on-findings: 'true'
           annotations: 'true'
+      - name: Reject action paths outside the workspace
+        id: invalid-action-path
+        continue-on-error: true
+        uses: ./
+        with:
+          path: '../'
+          fail-on-findings: 'true'
+      - name: Validate action path boundary
+        env:
+          OUTCOME: ${{ steps.invalid-action-path.outcome }}
+        run: test "$OUTCOME" = failure
       - name: Validate SARIF output
         env:
           SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}
