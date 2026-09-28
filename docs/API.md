@@ -1,13 +1,13 @@
 # AxiomGuard API reference
 
-Every export is listed by module. The root package re-exports everything; the subpath is the recommended import in larger services. Types are exported alongside the functions that use them.
+Every export is listed by module. The root package re-exports everything; focused subpaths let you import only the capability you need. Types are exported alongside the functions that use them.
 
 Conventions that hold across the whole SDK:
 
 - **Configuration errors throw; request adapters handle malformed request metadata defensively.** Invalid configuration (bad origins, short secrets, out-of-range TTLs) throws `TypeError`/`RangeError`, preferably at construction time. Request-facing adapters report malformed metadata as a rejection, `null`, a reason or a status; low-level validation helpers may throw typed errors for invalid input.
 - **Comparisons of secret-derived data are constant-time.**
 - **Findings and logs never contain the secret value.**
-- **Every `now` option is a millisecond timestamp** so you can inject your own clock (useful in test suites and replay tooling).
+- **Every `now` option is a millisecond timestamp** so you can inject your own clock (useful in test suites and controlled replay tooling).
 
 ## `@axiomnode-lab/guard/crypto`
 
