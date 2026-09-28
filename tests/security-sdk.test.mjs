@@ -5,7 +5,7 @@ import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeade
 
 test('cors blocks Origin null under wildcard policy unless explicitly enabled', () => {
   assert.equal(createCorsHeaders('null', { origins: '*' }), null);
-  assert.equal(createCorsHeaders('null', { origins: '*', allowNullOrigin: true }), undefined);
+  assert.equal(createCorsHeaders('null', { origins: '*', allowNullOrigin: true })?.['Access-Control-Allow-Origin'], '*');
 });
 
 test('cors rejects string booleans in security options', () => {
