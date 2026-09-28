@@ -40,6 +40,6 @@ Two-space indentation, single quotes, semicolons, trailing commas, explicit retu
 
 ## Commit messages and releases
 
-Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches `package.json`; see [docs/maintainers/RELEASE.md](docs/maintainers/RELEASE.md). Design notes and registry administration live in [docs/maintainers/](docs/maintainers/).
+Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches the package version in `package.json`. Keep release notes and migration notes current in `CHANGELOG.md` and `UPGRADING.md`.
 
 For vulnerability reports, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
