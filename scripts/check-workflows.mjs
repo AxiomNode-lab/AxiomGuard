@@ -38,14 +38,19 @@ for (const name of entries) {
       }
     }
 
-    if (/\buses:\s+[^.#][^\s]*@/.test(line)) {
-      const match = line.match(/\buses:\s+([^\s]+)/);
-      const target = match?.[1] ?? '';
-      if (target && !target.startsWith('./') && !/@[0-9a-f]{40}$/i.test(target)) {
-        violations.push(`${name}:${index + 1} uses a mutable external action ref: ${target}`);
+    const usesMatch = line.match(/^\s*(?:-\s*)?uses:\s+([^\s#]+)/);
+    if (usesMatch) {
+      const target = usesMatch[1] ?? '';
+      if (!target.startsWith('./')) {
+        const at = target.lastIndexOf('@');
+        const ref = at >= 0 ? target.slice(at + 1) : '';
+        const pinnedAction = /^[0-9a-f]{40}$/i.test(ref);
+        const pinnedDockerImage = target.startsWith('docker://') && /^sha256:[0-9a-f]{64}$/i.test(ref);
+        if (!pinnedAction && !pinnedDockerImage) {
+          violations.push(name + ':' + (index + 1) + ' uses a mutable external action ref: ' + target);
+        }
       }
     }
-
     if (/\buses:\s+actions\/checkout@/i.test(line)) {
       const following = lines.slice(index + 1, index + 21).join('\n');
       if (!/persist-credentials:\s*false/.test(following)) {
