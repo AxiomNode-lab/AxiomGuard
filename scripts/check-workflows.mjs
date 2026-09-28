@@ -19,12 +19,12 @@ for (const name of entries) {
 
     if (runIndent !== null && trimmed && indent <= runIndent) runIndent = null;
 
-    if (/^\s*run:\s*[|>]/.test(line)) {
+    if (/^\s*(?:-\s*)?run:\s*[|>]/.test(line)) {
       runIndent = indent + 2;
       continue;
     }
 
-    const inlineRun = line.match(/^\s*run:\s+(?![|>])(.+)$/);
+    const inlineRun = line.match(/^\s*(?:-\s*)?run:\s+(?![|>])(.+)$/);
     if (inlineRun && /\$\{\{\s*github\.(?:event\.|head_ref|base_ref|ref_name)\b/.test(inlineRun[1])) {
       violations.push(`${name}:${index + 1} interpolates untrusted github context directly inside an inline shell run`);
     }
