@@ -16,7 +16,7 @@ Useful commands:
 | --- | --- |
 | `npm test` | build, then `node --test` (unit tests in `tests/*.test.mjs`) |
 | `npm run test:coverage` | the same with V8 coverage (thresholds are enforced in CI on Node 22+) |
-| `npm run test:types` | compile-only type assertions in `tests/types (tsc -p tests/types/tsconfig.json)` |
+| `npm run test:types` | compile-only type assertions in `tests/types` (`tsc -p tests/types/tsconfig.json`) |
 | `npm run lint` / `npm run lint:fix` | Biome (lint only; formatting is not enforced yet) |
 | `npm run test:package` | pack the tarball, install it in a clean directory and exercise imports, `require()`, types and the CLI |
 | `npm run test:integration:frameworks` | real Express/Fastify/Hono; first run `npm install --no-save --package-lock=false express@5.2.1 fastify@5.12.1 hono@4.13.4` |
@@ -36,10 +36,10 @@ Useful commands:
 
 ## Style
 
-Two-space indentation, single quotes, semicolons, trailing commas, explicit return types on exported functions. Prefer small pure functions and typed error classes with stable `code`s over string matching. Operator misconfiguration should throw at construction time; client-controlled input must never throw.
+Two-space indentation, single quotes, semicolons, trailing commas, explicit return types on exported functions. Prefer small pure functions and typed error classes with stable `code`s over string matching. Operator misconfiguration should throw at construction time; request-facing adapters should handle malformed client-controlled metadata defensively.
 
 ## Commit messages and releases
 
-Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches `package.json`; see [docs/maintainers/RELEASE.md](docs/maintainers/RELEASE.md). Design notes and registry administration live in [docs/maintainers/](docs/maintainers/).
+Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches the package version in `package.json`. Keep release notes and migration notes current in `CHANGELOG.md` and `UPGRADING.md`.
 
 For vulnerability reports, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.

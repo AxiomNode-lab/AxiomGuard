@@ -15,9 +15,9 @@ AxiomGuard (published as `@axiomnode-lab/guard`) is a modular security toolkit f
 
 Use the complete package when convenience matters, or import a focused subpath when you only need one control.
 
-- **Zero runtime dependencies** — nothing to audit but this package.
-- **Fails closed** — every helper validates its configuration at startup and never throws on client-controlled input.
-- **Framework-neutral** — first-class adapters for Express, Fastify, Hono and Web-standard runtimes (Next.js, Cloudflare, Bun, Deno).
+- **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
+- **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
+- **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
 - **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection.
 - **Typed end to end** — from `requireEnv` schemas to stable error codes.
 
@@ -130,7 +130,7 @@ export default {
 };
 ```
 
-All adapters share one validated pipeline (`createSecurityCore`), so behaviour is identical: configuration errors throw at startup, client input never throws, `Vary` is merged with what your handlers set, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
+All adapters share one validated pipeline (`createSecurityCore`): configuration errors throw during setup, malformed request metadata is handled defensively, `Vary` is merged with existing values, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
 
 See [Framework adapters](docs/ADAPTERS.md) for adapter options and Redis-backed integrations.
 
@@ -415,7 +415,7 @@ import { safeFetch } from '@axiomnode-lab/guard/fetch';
 import { redactSecrets } from '@axiomnode-lab/guard/logging';
 ```
 
-Subpath imports make the capability being used explicit and are the recommended style in larger services.
+Subpath imports make the capability being used explicit and are useful when an application only needs one part of the toolkit.
 
 ## Package entry points
 
@@ -462,7 +462,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [API reference](docs/API.md)
 - [Upgrading between versions](UPGRADING.md)
 - [Comparison with other libraries](docs/COMPARISON.md)
-- [Examples](examples/)
+- [Examples](https://github.com/AxiomNode-lab/AxiomGuard/tree/v0.7.1/examples)
 - [API protection](docs/API_PROTECTION.md)
 - [Framework adapters](docs/ADAPTERS.md)
 - [Safe fetch](docs/SAFE_FETCH.md)
@@ -470,7 +470,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [GitHub Action](docs/GITHUB_ACTION.md)
 - [Security policy](SECURITY.md)
 - [Threat model](THREAT_MODEL.md)
-- [Changelog](CHANGELOG.md)
+- [Changelog](https://github.com/AxiomNode-lab/AxiomGuard/blob/main/CHANGELOG.md)
 
 ## Contributing
 

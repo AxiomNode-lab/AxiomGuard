@@ -3,6 +3,12 @@
 AxiomGuard is pre-1.0: minor releases may change security defaults or tighten
 behaviour. Every such change is listed here with the migration.
 
+## 0.7.0 → 0.7.1
+
+### Changed
+
+This patch release does not change the runtime API. It fixes the published package surface, documentation consistency and package-shape qualification. No application code changes are required.
+
 ## 0.6 → 0.7
 
 ### Breaking

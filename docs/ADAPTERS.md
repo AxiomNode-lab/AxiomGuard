@@ -1,6 +1,6 @@
 # Framework and Redis adapters
 
-AxiomGuard keeps framework and Redis clients out of `dependencies`. The adapters use only the structural surface they need, so consumers keep control of framework versions and Redis clients.
+AxiomGuard keeps framework and Redis clients out of runtime dependencies. The adapters use only the structural surface they need, so applications keep control of framework and Redis client versions.
 
 ## Shared browser request policy
 
@@ -81,7 +81,7 @@ For normal requests, headers are applied after `await next()` so the adapter own
 
 ## Web-standard runtimes
 
-`createFetchSecurityHandler` wraps any `(Request) => Response` function and works wherever the Fetch API is the HTTP layer: Next.js middleware and route handlers, SvelteKit `handle`, Cloudflare Workers, Deno, Bun, Vercel Edge.
+`createFetchSecurityHandler` wraps a web-standard `(Request) => Response` handler and works where the Fetch API is the HTTP layer. Framework entry points such as Next.js middleware and SvelteKit `handle` need to adapt their framework-specific handler shape to this interface.
 
 ```ts
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
@@ -98,7 +98,7 @@ export default { fetch: (request: Request) => guard(request, (req) => router.han
 
 ## Shared behaviour and options
 
-All adapters call `createSecurityCore(options)` once at construction. It validates every option (bad origins, wildcard with credentials, invalid tokens, out-of-range statuses) and throws immediately, so misconfiguration never reaches production traffic. Per request it evaluates security headers, CORS and the optional request policy and returns `preflight`, `blocked` or `continue`; use it directly to build an adapter for another framework.
+All adapters call `createSecurityCore(options)` once at construction. It validates configuration and throws immediately, so misconfiguration is caught before request handling begins. Per request it evaluates security headers, CORS and the optional request policy and returns `preflight`, `blocked` or `continue`; use it directly to build an adapter for another framework.
 
 | Option | Default | Notes |
 | --- | --- | --- |
