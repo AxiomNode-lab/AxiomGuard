@@ -5,8 +5,9 @@ export type FetchSecurityHandler = (request: Request, next: FetchHandler) => Pro
 
 /**
  * Web-standard (WinterCG) wrapper for runtimes that speak `Request`/`Response`
- * directly: Next.js middleware, SvelteKit hooks, Cloudflare Workers, Deno,
- * Bun and Node's own `http` via adapters. Preflights and policy blocks are
+ * directly, including Cloudflare Workers, Deno, Bun and Node-based framework
+ * handlers. Framework-specific runtimes must provide the APIs used by the
+ * imported subpath. Preflights and policy blocks are
  * answered without calling `next`; otherwise the handler's response is
  * returned with the defensive headers applied and `Vary` merged.
  */
