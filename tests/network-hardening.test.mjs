@@ -54,6 +54,8 @@ test('isPrivateIPAddress blocks IPv4-translated, local-use NAT64, discard and do
   for (const ip of ['192.0.0.1', '192.0.0.8', '192.0.0.170', '192.0.0.171']) assert.equal(isPrivateIPAddress(ip), true, ip);
   assert.equal(isPrivateIPAddress('192.0.0.9'), false);
   assert.equal(isPrivateIPAddress('192.0.0.10'), false);
+  assert.equal(isPrivateIPAddress('100:0:0:1::1'), true, '100:0:0:1::/64 dummy prefix');
+  assert.equal(isPrivateIPAddress('5f00::1'), true, '5f00::/16 SRv6 SIDs');
   assert.equal(isPrivateIPAddress('2606:4700::1111'), false);
 });
 
