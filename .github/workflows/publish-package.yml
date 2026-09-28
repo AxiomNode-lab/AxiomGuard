@@ -17,16 +17,6 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 24
-          registry-url: https://npm.pkg.github.com
-          scope: '@axiomnode-lab'
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run test:package
       - name: Verify publication source
         shell: bash
         env:
@@ -63,6 +53,16 @@ jobs:
               exit 1
             }
           fi
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@axiomnode-lab'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:package
       - name: Check whether this version already exists
         id: version
         shell: bash
