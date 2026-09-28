@@ -125,6 +125,8 @@ function isPrivateIPv6(ip: string): boolean {
   if ((first & 0xffc0) === 0xfec0) return true; // fec0::/10 deprecated site-local
   if ((first & 0xff00) === 0xff00) return true; // ff00::/8 multicast
   if (first === 0x0100 && words.slice(1, 4).every((word) => word === 0)) return true; // 100::/64 discard-only
+  if (first === 0x0100 && second === 0 && words[2] === 0 && words[3] === 1) return true; // 100:0:0:1::/64 dummy prefix
+  if ((first & 0xff00) === 0x5f00) return true; // 5f00::/16 SRv6 SIDs (not globally reachable)
   if (first === 0x2001 && second === 0x0db8) return true; // 2001:db8::/32 documentation
   if (first === 0x2001 && second === 0x0002 && words[2] === 0) return true; // 2001:2::/48 benchmarking
   if ((first & 0xfff0) === 0x3ff0) return true; // 3fff::/20 documentation (RFC 9637)
