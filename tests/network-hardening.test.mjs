@@ -57,6 +57,13 @@ test('isPrivateIPAddress blocks IPv4-translated, local-use NAT64, discard and do
   assert.equal(isPrivateIPAddress('2606:4700::1111'), false);
 });
 
+test('safeFetch rejects string booleans that could disable security controls', async () => {
+  await assert.rejects(() => safeFetch('http://127.0.0.1:1', { dangerouslyAllowPrivateTargets: 'false' }), /dangerouslyAllowPrivateTargets must be a boolean/);
+  await assert.rejects(() => safeFetch('https://example.com', { allowCredentials: 'false' }), /allowCredentials must be a boolean/);
+  await assert.rejects(() => safeFetch('https://example.com', { stripSensitiveHeadersOnCrossOriginRedirect: 'false' }), /stripSensitiveHeadersOnCrossOriginRedirect must be a boolean/);
+  await assert.rejects(() => safeFetch('https://example.com', { allowInsecureRedirectDowngrade: 'false' }), /allowInsecureRedirectDowngrade must be a boolean/);
+});
+
 test('safeFetch timeout and caller signal keep applying while the body streams', async () => {
   await withServer((_request, response) => {
     response.writeHead(200, { 'content-type': 'text/plain' });
