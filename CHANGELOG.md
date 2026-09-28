@@ -10,6 +10,8 @@ Security and release-pipeline hardening release.
 - Release publication now verifies that tagged source is reachable from `main` and that the tagged package version matches `main` before running repository code in privileged publication jobs.
 - Disabled persisted checkout credentials in GitHub Actions workflows.
 - Added runtime validation for cookie `SameSite`, `Priority`, `secure` and `httpOnly` attributes.
+- Added runtime validation for security-header boolean options and HSTS boolean flags.
+- Pinned the release container's Node base image by version and digest for reproducible builds.
 - Expanded outbound URL blocking for non-global IPv4 special-use addresses covered by the IANA registry.
 
 ### Changed
