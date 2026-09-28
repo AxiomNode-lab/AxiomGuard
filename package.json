@@ -194,8 +194,7 @@
     "standard-webhooks",
     "svix",
     "helmet",
-    "idempotency-key",
-    "fetch-metadata"
+    "idempotency-key"
   ],
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
