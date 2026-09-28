@@ -19,9 +19,14 @@ for (const name of entries) {
 
     if (runIndent !== null && trimmed && indent <= runIndent) runIndent = null;
 
-    if (/^\s*run:\s*\|/.test(line)) {
+    if (/^\s*run:\s*[|>]/.test(line)) {
       runIndent = indent + 2;
       continue;
+    }
+
+    const inlineRun = line.match(/^\s*run:\s+(?![|>])(.+)$/);
+    if (inlineRun && /\$\{\{\s*github\.(?:event\.|head_ref|base_ref|ref_name)\b/.test(inlineRun[1])) {
+      violations.push(`${name}:${index + 1} interpolates untrusted github context directly inside an inline shell run`);
     }
 
     if (runIndent !== null) {
@@ -42,7 +47,7 @@ for (const name of entries) {
     }
 
     if (/\buses:\s+actions\/checkout@/i.test(line)) {
-      const following = lines.slice(index + 1, index + 6).join('\n');
+      const following = lines.slice(index + 1, index + 21).join('\n');
       if (!/persist-credentials:\s*false/.test(following)) {
         violations.push(`${name}:${index + 1} actions/checkout is missing persist-credentials: false`);
       }
