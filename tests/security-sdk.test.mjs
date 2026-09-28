@@ -63,6 +63,14 @@ test('header helper emits cross-origin protections and CSP report-only', () => {
   assert.ok(headers['Content-Security-Policy-Report-Only']);
 });
 
+test('header helper rejects string booleans and invalid HSTS shape at runtime', () => {
+  assert.throws(() => createSecurityHeaders({ contentSecurityPolicy: { 'default-src': ["'self'"] }, contentSecurityPolicyReportOnly: 'false' }), /contentSecurityPolicyReportOnly must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ originAgentCluster: 'false' }), /originAgentCluster must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ xssProtection: 'false' }), /xssProtection must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ hsts: 'false' }), /hsts must be an object or false/);
+  assert.throws(() => createSecurityHeaders({ hsts: { includeSubDomains: 'false' } }), /hsts.includeSubDomains must be a boolean/);
+});
+
 test('env supports ports numbers json and defaults', () => {
   const result = validateEnv({ PORT: { type: 'port' }, RATIO: { type: 'number', min: 0, max: 1 }, FLAGS: { type: 'json' }, MODE: { default: 'prod', required: false } }, { PORT: '443', RATIO: '0.5', FLAGS: '{"a":true}' });
   assert.equal(result.ok, true); assert.equal(result.values.PORT, 443); assert.equal(result.values.RATIO, 0.5); assert.deepEqual(result.values.FLAGS, { a: true }); assert.equal(result.values.MODE, 'prod');
