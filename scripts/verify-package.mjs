@@ -24,6 +24,37 @@ if (!Array.isArray(packResult) || packResult.length !== 1 || typeof packResult[0
   throw new Error('npm pack did not return one package archive');
 }
 
+const archiveFiles = new Set((packResult[0].files ?? []).map((file) => file.path).filter((file) => typeof file === 'string'));
+const requiredPublicFiles = [
+  'README.md',
+  'LICENSE',
+  'SECURITY.md',
+  'THREAT_MODEL.md',
+  'UPGRADING.md',
+  'CHANGELOG.md',
+  'docs/ADAPTERS.md',
+  'docs/API.md',
+  'docs/API_PROTECTION.md',
+  'docs/COMPARISON.md',
+  'docs/GITHUB_ACTION.md',
+  'docs/SAFE_FETCH.md',
+  'docs/SCANNER.md',
+  'docs/axiomguard-demo.svg',
+];
+for (const file of requiredPublicFiles) {
+  if (!archiveFiles.has(file)) throw new Error(`published package is missing required public file: ${file}`);
+}
+
+const forbiddenPrefixes = ['.github/', 'bench/', 'scripts/', 'src/', 'tests/', 'docs/maintainers/'];
+for (const file of archiveFiles) {
+  if (forbiddenPrefixes.some((prefix) => file.startsWith(prefix))) {
+    throw new Error(`published package contains repository-only file: ${file}`);
+  }
+}
+for (const file of ['package-lock.json', '.env.example']) {
+  if (archiveFiles.has(file)) throw new Error(`published package contains development/environment file: ${file}`);
+}
+
 const archive = path.join(root, packResult[0].filename);
 const workspace = await mkdtemp(path.join(tmpdir(), 'axiomguard-package-'));
 
