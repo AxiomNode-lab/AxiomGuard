@@ -31,7 +31,6 @@ const requiredPublicFiles = [
   'SECURITY.md',
   'THREAT_MODEL.md',
   'UPGRADING.md',
-  'CHANGELOG.md',
   'docs/ADAPTERS.md',
   'docs/API.md',
   'docs/API_PROTECTION.md',
