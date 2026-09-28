@@ -57,6 +57,12 @@ test('isPrivateIPAddress blocks IPv4-translated, local-use NAT64, discard and do
   assert.equal(isPrivateIPAddress('2606:4700::1111'), false);
 });
 
+test('assertSafeUrl rejects string booleans that could disable URL security controls', () => {
+  assert.throws(() => assertSafeUrl('http://127.0.0.1', { dangerouslyAllowPrivateTargets: 'false' }), /dangerouslyAllowPrivateTargets must be a boolean/);
+  assert.throws(() => assertSafeUrl('https://example.com', { allowCredentials: 'false' }), /allowCredentials must be a boolean/);
+  assert.throws(() => assertSafeUrl('https://example.com', { protocols: ['file:'] }), /protocols must contain only/);
+});
+
 test('safeFetch rejects string booleans that could disable security controls', async () => {
   await assert.rejects(() => safeFetch('http://127.0.0.1:1', { dangerouslyAllowPrivateTargets: 'false' }), /dangerouslyAllowPrivateTargets must be a boolean/);
   await assert.rejects(() => safeFetch('https://example.com', { allowCredentials: 'false' }), /allowCredentials must be a boolean/);
