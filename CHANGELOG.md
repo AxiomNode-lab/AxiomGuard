@@ -12,6 +12,7 @@ Security and release-pipeline hardening release.
 - Added runtime validation for cookie `SameSite`, `Priority`, `secure` and `httpOnly` attributes.
 - Added runtime validation for security-header and adapter boolean options, plus HSTS boolean flags.
 - Pinned the release container's Node base image by version and digest for reproducible builds.
+- Confined GitHub Action `path`, `config`, and `baseline` inputs to `GITHUB_WORKSPACE` and added an out-of-workspace regression test.
 - Expanded outbound URL blocking for non-global IPv4 special-use addresses covered by the IANA registry.
 
 ### Changed
