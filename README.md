@@ -12,7 +12,7 @@ Security building blocks for Node.js and TypeScript services.
 
 AxiomGuard is a modular security toolkit for backend services. It provides small, typed primitives for request protection, signed webhooks, idempotency, outbound HTTP, rate limiting, secrets handling, environment validation, filesystem safety, and repository secret scanning.
 
-**Status:** pre-1.0. The current release is intended for evaluation and production use with the documented security boundaries.
+**Status:** pre-1.0.
 
 ## Install
 
