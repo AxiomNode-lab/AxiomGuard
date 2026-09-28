@@ -1,6 +1,6 @@
 # Scanner configuration, baselines and CI
 
-AxiomGuard's repository scanner is intentionally conservative: every rule is a provider-shaped prefix with enough trailing entropy to stay quiet on ordinary code. `axiomguard rules` lists the current rules and their severities. Configuration, deterministic non-secret fingerprints, baselines and GitHub annotations let teams adopt the scanner without permanently ignoring new findings.
+AxiomGuard's repository scanner is intentionally conservative: every rule is a provider-shaped prefix with enough trailing entropy to stay quiet on ordinary code. `axiomguard rules` lists the current rules and their severities. Configuration, deterministic non-secret fingerprints, baselines and GitHub annotations make it easier to adopt the scanner without permanently ignoring new findings.
 
 ## What is scanned
 
