@@ -172,6 +172,9 @@ export async function verifyGitHubWebhookDelivery(
  */
 export async function verifyFreshHmacWebhook(input: VerifyFreshHmacWebhookInput, options: VerifyFreshHmacWebhookOptions = {}): Promise<FreshWebhookResult> {
   const { toleranceSeconds, now: nowOption, replayStore, replayKey, replayTtlSeconds, signedInput, ...hmacOptions } = options;
+  if (signedInput !== undefined && signedInput !== 'payload' && signedInput !== 'timestamp.payload') {
+    throw new TypeError("signedInput must be 'payload' or 'timestamp.payload'");
+  }
   const timestampText = typeof input.timestamp === 'number' ? String(input.timestamp) : input.timestamp.trim();
   const signed = signedInput === 'timestamp.payload'
     ? Buffer.concat([Buffer.from(`${timestampText}.`, 'utf8'), toBuffer(input.payload)])
