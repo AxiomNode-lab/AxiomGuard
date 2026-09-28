@@ -37,7 +37,7 @@ Packaging and public-surface maintenance release.
 
 ## [0.7.0] - 2026-09-13
 
-Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
+Security hardening release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
 
 ### Security
 
