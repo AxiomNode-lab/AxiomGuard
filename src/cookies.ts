@@ -38,6 +38,11 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
   const path = options.path ?? '/';
   const httpOnly = options.httpOnly ?? true;
   const sameSite = options.sameSite ?? 'Lax';
+  const priority = options.priority;
+  if (typeof secure !== 'boolean') throw new TypeError('secure must be a boolean');
+  if (typeof httpOnly !== 'boolean') throw new TypeError('httpOnly must be a boolean');
+  if (!['Strict', 'Lax', 'None'].includes(sameSite)) throw new TypeError('sameSite must be Strict, Lax, or None');
+  if (priority !== undefined && !['Low', 'Medium', 'High'].includes(priority)) throw new TypeError('priority must be Low, Medium, or High');
 
   if (name.startsWith('__Secure-') && !secure) throw new TypeError('__Secure- cookies must be Secure');
   if (name.startsWith('__Host-')) {
