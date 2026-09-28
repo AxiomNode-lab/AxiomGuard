@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, redactSecrets, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
 
+test('cors rejects string booleans in security options', () => {
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowNullOrigin: 'false' }), /allowNullOrigin must be a boolean/);
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowCredentials: 'false' }), /allowCredentials must be a boolean/);
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowPrivateNetwork: 'false' }), /allowPrivateNetwork must be a boolean/);
+});
+
 test('csrf rejects string booleans that could disable session binding', () => {
   assert.throws(() => createCsrfToken('0123456789abcdef', { allowUnbound: 'false' }), /allowUnbound must be a boolean/);
   const token = createCsrfToken('0123456789abcdef', { sessionId: 'user-1' });
