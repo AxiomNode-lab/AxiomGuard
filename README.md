@@ -22,13 +22,6 @@ Requires Node.js 20 or newer and TypeScript 5.x.
 npm install @axiomnode-lab/guard
 ```
 
-pnpm and Yarn are also supported:
-
-```bash
-pnpm add @axiomnode-lab/guard
-yarn add @axiomnode-lab/guard
-```
-
 ## Quick start
 
 ### Express
@@ -215,7 +208,7 @@ npm run test:coverage
 npm run scan:self
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+See [CONTRIBUTING.md](https://github.com/AxiomNode-lab/AxiomGuard/blob/main/CONTRIBUTING.md) before opening a pull request.
 
 ## License
 
