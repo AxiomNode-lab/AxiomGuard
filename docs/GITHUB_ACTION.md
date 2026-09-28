@@ -2,7 +2,7 @@
 
 The repository can be used directly as a composite GitHub Action. It scans the checked-out workspace and writes SARIF 2.1.0 without including matched credential values.
 
-> **Pinning:** use an existing release tag or an immutable commit SHA in production. Until `v0.7.1` is tagged, the example below uses `@main` for evaluation only. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
+> **Pinning:** use an existing release tag or an immutable commit SHA in production. Until the current version is released, the example below uses `@main` for evaluation only; production consumers should pin an existing release tag or immutable commit SHA. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
 
 ```yaml
 name: AxiomGuard
