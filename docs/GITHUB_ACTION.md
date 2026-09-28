@@ -2,7 +2,7 @@
 
 The repository can be used directly as a composite GitHub Action. It scans the checked-out workspace and writes SARIF 2.1.0 without including matched credential values.
 
-> **Pinning:** use a release tag (`@v0.7.1`) or an immutable commit SHA in production. `@main` is for evaluation only. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
+> **Pinning:** use an existing release tag or an immutable commit SHA in production. Until `v0.7.1` is tagged, the example below uses `@main` for evaluation only. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
 
 ```yaml
 name: AxiomGuard
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - id: axiomguard
-        uses: AxiomNode-lab/AxiomGuard@v0.7.1
+        uses: AxiomNode-lab/AxiomGuard@main
         with:
           path: .
           fail-on-findings: 'true'
@@ -61,7 +61,7 @@ For an existing repository with known findings, start in audit mode rather than 
 
 ```yaml
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@v0.7.1
+  uses: AxiomNode-lab/AxiomGuard@main
   with:
     path: .
     fail-on-findings: 'false'
