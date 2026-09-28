@@ -25,7 +25,7 @@ function applyHeaders(response: ExpressLikeResponse, headers: Record<string, str
 /**
  * Express/Connect middleware: sets defensive headers before the handler runs
  * (handlers may override them), answers CORS preflights and optionally
- * enforces the browser request policy. Client-controlled input never throws.
+ * enforces the browser request policy. Malformed client-controlled request metadata is handled defensively.
  */
 export function createExpressSecurityMiddleware(options: SecurityAdapterOptions = {}): ExpressSecurityMiddleware {
   const core = createSecurityCore(options);
