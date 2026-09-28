@@ -45,7 +45,7 @@ export interface SafeUrlOptions {
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255 || !Number.isInteger(part))) return true;
-  const [a, b, c] = parts as [number, number, number, number];
+  const [a, b, c, d] = parts as [number, number, number, number];
   return (
     a === 0 ||
     a === 10 ||
@@ -53,8 +53,9 @@ function isPrivateIPv4(ip: string): boolean {
     (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 0 && c === 0) ||
+    (a === 192 && b === 0 && c === 0 && d <= 8) ||
     (a === 192 && b === 0 && c === 2) ||
+    (a === 192 && b === 0 && c === 170 && d <= 171) ||
     (a === 192 && b === 88 && c === 99) ||
     (a === 192 && b === 168) ||
     (a === 198 && (b === 18 || b === 19)) ||
