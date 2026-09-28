@@ -110,6 +110,7 @@ export function createCorsPolicy(options: CorsOptions): CorsPolicy {
     if (configured !== '*') headers.Vary = preflight ? 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers' : 'Origin';
 
     let allowedOrigin: string | null = null;
+    if (origin === 'null' && !allowNullOrigin) return { allowed: false, preflight, headers };
     if (configured === '*') allowedOrigin = '*';
     else if (requestOrigin !== null) {
       const allowed = configured instanceof Set ? configured.has(requestOrigin) : configured(requestOrigin);
