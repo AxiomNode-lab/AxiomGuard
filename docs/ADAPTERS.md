@@ -81,7 +81,7 @@ For normal requests, headers are applied after `await next()` so the adapter own
 
 ## Web-standard runtimes
 
-`createFetchSecurityHandler` wraps a web-standard `(Request) => Response` handler and works where the Fetch API is the HTTP layer. Framework entry points such as Next.js middleware and SvelteKit `handle` need to adapt their framework-specific handler shape to this interface.
+`createFetchSecurityHandler` wraps a web-standard `(Request) => Response` handler and works where the Fetch API and imported Node compatibility APIs are available. Cloudflare Workers, Deno and Bun provide relevant Node compatibility layers; Next.js runtime support is version-dependent, so use a Node.js runtime or verify the framework's current edge/runtime constraints.
 
 ```ts
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
