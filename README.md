@@ -18,7 +18,7 @@ Use the complete package when convenience matters, or import a focused subpath w
 - **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
 - **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
 - **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
-- **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection.
+- **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection where the provider exposes a delivery/message identity or the application supplies a replay key.
 - **Typed end to end** — from `requireEnv` schemas to stable error codes.
 
 See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit and friends.
@@ -130,7 +130,7 @@ export default {
 };
 ```
 
-All adapters share one validated pipeline (`createSecurityCore`): configuration errors throw during setup, malformed request metadata is handled defensively, `Vary` is merged with existing values, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
+All adapters share one validated security decision pipeline (`createSecurityCore`): configuration errors throw during setup, malformed request metadata is handled defensively, `Vary` is merged with existing values, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
 
 See [Framework adapters](docs/ADAPTERS.md) for adapter options and Redis-backed integrations.
 
