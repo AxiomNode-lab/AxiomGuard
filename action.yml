@@ -58,16 +58,16 @@ runs:
         set -euo pipefail
         repo_path() {
           node - "$GITHUB_WORKSPACE" "$1" <<'NODE'
-const path = require('node:path');
-const [rootArg, input] = process.argv.slice(2);
-const root = path.resolve(rootArg);
-const candidate = path.resolve(root, input);
-if (candidate !== root && !candidate.startsWith(root + path.sep)) {
-  process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\\n');
-  process.exit(2);
-}
-process.stdout.write(candidate);
-NODE
+        const path = require('node:path');
+        const [rootArg, input] = process.argv.slice(2);
+        const root = path.resolve(rootArg);
+        const candidate = path.resolve(root, input);
+        if (candidate !== root && !candidate.startsWith(root + path.sep)) {
+          process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\\n');
+          process.exit(2);
+        }
+        process.stdout.write(candidate);
+        NODE
         }
         if [[ -z "$AXIOMGUARD_INPUT_PATH" ]]; then
           echo "::error::path must not be empty"
