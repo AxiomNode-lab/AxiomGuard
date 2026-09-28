@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format follows
 follows semantic versioning in intent (pre-1.0 minors may change defaults; see
 [UPGRADING.md](UPGRADING.md)).
 
+## [0.7.1] - 2026-09-28
+
+Packaging and public-surface maintenance release.
+
+### Changed
+
+- Fixed the npm package file allowlist so the published README retains its demo image and linked public documentation.
+- Added a clean-room package-shape check that rejects repository-only files such as tests, source, scripts, benchmarks and maintainer notes from the published tarball.
+- Removed duplicated GitHub Action documentation and corrected stale release references.
+- Tightened public security wording so claims match the actual request and configuration boundaries.
+
 ## [0.7.0] - 2026-09-13
 
 Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
