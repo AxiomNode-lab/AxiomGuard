@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Zero-runtime-dependency security SDK for Node.js: webhooks (GitHub, Stripe, Slack, Meta, Standard Webhooks), request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, secret scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -142,9 +142,11 @@
     "docs/ADAPTERS.md",
     "docs/API.md",
     "docs/API_PROTECTION.md",
+    "docs/COMPARISON.md",
     "docs/GITHUB_ACTION.md",
     "docs/SAFE_FETCH.md",
-    "docs/SCANNER.md"
+    "docs/SCANNER.md",
+    "docs/axiomguard-demo.svg"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
