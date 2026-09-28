@@ -15,6 +15,7 @@ Packaging and public-surface maintenance release.
 - Added a clean-room package-shape check that rejects repository-only files such as tests, source, scripts, benchmarks and maintainer notes from the published tarball.
 - Removed duplicated GitHub Action documentation and corrected stale release references.
 - Tightened public security wording so claims match the actual request and configuration boundaries.
+- Stabilized the slow-body timeout test so package qualification is not sensitive to runner startup jitter.
 
 ## [0.7.0] - 2026-09-13
 
