@@ -33,6 +33,10 @@ function assertSecret(secret: string): void {
   if (typeof secret !== 'string' || secret.length < 16) throw new TypeError('CSRF secret must be at least 16 characters');
 }
 
+function assertOptionalBoolean(name: string, value: boolean | undefined): void {
+  if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+}
+
 function resolveBinding(sessionId: string | undefined, allowUnbound: boolean | undefined): string {
   if (sessionId !== undefined && sessionId !== '') return createHash('sha256').update(sessionId, 'utf8').digest('base64url').slice(0, 22);
   if (allowUnbound) return '-';
@@ -64,6 +68,7 @@ function sign(secret: string, body: string): Buffer {
  */
 export function createCsrfToken(secret: string, options: CreateCsrfTokenOptions = {}): string {
   assertSecret(secret);
+  assertOptionalBoolean('allowUnbound', options.allowUnbound);
   const nonceBytes = options.nonceBytes ?? 18;
   if (!Number.isInteger(nonceBytes) || nonceBytes < 16 || nonceBytes > 64) throw new RangeError('nonceBytes must be 16-64');
   const binding = resolveBinding(options.sessionId, options.allowUnbound);
@@ -82,6 +87,7 @@ export function createCsrfToken(secret: string, options: CreateCsrfTokenOptions 
  */
 export function verifyCsrfToken(token: string, secret: string, options: VerifyCsrfTokenOptions = {}): boolean {
   assertSecret(secret);
+  assertOptionalBoolean('allowUnbound', options.allowUnbound);
   const maxAgeSeconds = resolveMaxAge(options.maxAgeSeconds);
   const binding = resolveBinding(options.sessionId, options.allowUnbound);
   if (typeof token !== 'string' || token.length === 0 || token.length > MAX_TOKEN_LENGTH) return false;
