@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, redactSecrets, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
 
+test('csrf rejects string booleans that could disable session binding', () => {
+  assert.throws(() => createCsrfToken('0123456789abcdef', { allowUnbound: 'false' }), /allowUnbound must be a boolean/);
+  const token = createCsrfToken('0123456789abcdef', { sessionId: 'user-1' });
+  assert.throws(() => verifyCsrfToken(token, '0123456789abcdef', { sessionId: 'user-1', allowUnbound: 'false' }), /allowUnbound must be a boolean/);
+});
+
 test('secure cookies enforce host prefix invariants', () => {
   const value = serializeCookie('__Host-session', 'abc', { sameSite: 'Strict' });
   assert.match(value, /Secure/); assert.match(value, /HttpOnly/); assert.match(value, /Path=\//);
