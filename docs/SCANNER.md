@@ -50,6 +50,8 @@ axiomguard scan . --baseline security/accepted-findings.json
 
 A baseline is not an allowlist for a secret. If a finding is a real credential, rotate/revoke it and remove it from the repository instead of baselining it.
 
+> **Baseline limitation:** fingerprints are location-based (`rule + repository-relative file + line`). Replacing a detected value on the same line can therefore keep the same baseline fingerprint. Treat baselines as reviewed exceptions, not as proof that a value remains safe.
+
 ## GitHub annotations
 
 ```bash
