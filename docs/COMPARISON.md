@@ -1,8 +1,8 @@
 # How AxiomGuard compares
 
 AxiomGuard is not a replacement for a framework's ecosystem; it is a set of
-primitives that can stand in for several small dependencies with one audited,
-zero-dependency package. The table shows the closest popular alternative for
+primitives that can cover several small security concerns with one focused,
+zero-runtime-dependency package. The table shows the closest popular alternative for
 each control and what AxiomGuard does differently.
 
 | Control | Common alternative | AxiomGuard | What AxiomGuard does not do |
@@ -20,7 +20,4 @@ each control and what AxiomGuard does differently.
 | Secret scanning | `gitleaks`, `trufflehog` | Conservative provider-shaped rules, baselines, SARIF, GitHub Action and container, no matched values in output | Entropy analysis, git history scanning, hundreds of rules |
 | Filenames and paths | `sanitize-filename`, `path.resolve` checks | Byte-bounded Unicode-aware filenames, NUL-safe path containment | Resolve symlinks (use `fs.realpath` after `safePath`) |
 
-Choose AxiomGuard when you want these controls to share one threat model,
-one release cadence and no transitive dependencies. Keep the specialised
-tools when you need their depth (a full scanner for git history, a token
-bucket limiter, a provider SDK that also parses events).
+Choose AxiomGuard when you want a focused set of related controls without runtime npm dependencies. Keep specialised tools when you need deeper capabilities such as full git-history scanning, token-bucket algorithms, provider event parsing or ecosystem-specific integrations.
