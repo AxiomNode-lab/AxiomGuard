@@ -241,4 +241,5 @@ Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.
 - CSP builder and framework-neutral security headers.
 - GitHub Packages and GHCR delivery workflows.
 
+[0.7.1]: https://github.com/AxiomNode-lab/AxiomGuard/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/AxiomNode-lab/AxiomGuard/compare/v0.6.1...v0.7.0
