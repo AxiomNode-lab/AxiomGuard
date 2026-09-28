@@ -17,7 +17,7 @@ Use the complete package when convenience matters, or import a focused subpath w
 
 - **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
 - **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
-- **Framework-neutral** — first-class adapters for Express, Fastify, Hono and Web-standard runtimes (Next.js, Cloudflare, Bun, Deno).
+- **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
 - **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection.
 - **Typed end to end** — from `requireEnv` schemas to stable error codes.
 
