@@ -1,9 +1,6 @@
-name: AxiomGuard Secret Scan
-description: Scan a repository for high-confidence secret patterns and produce SARIF without echoing matched values.
-author: AxiomNode Lab
-branding:
-  icon: shield
-  color: blue
+name: AxiomGuard secret scan
+
+description: Scan a repository for high-confidence secret patterns.
 
 inputs:
   path:
@@ -23,26 +20,24 @@ inputs:
     required: false
     default: ''
   annotations:
-    description: Emit GitHub workflow warning annotations for new findings without exposing matched values.
+    description: Emit GitHub workflow annotations for findings.
     required: false
     default: 'true'
 
 outputs:
   sarif:
-    description: Absolute path to the generated SARIF 2.1.0 file.
-    value: ${{ steps.scan.outputs.sarif }}
+    description: Absolute path to the generated SARIF file.
   exit-code:
-    description: AxiomGuard scanner exit code (0 clean, 1 new findings unless fail-on-findings is false, 2 error).
-    value: ${{ steps.scan.outputs.exit-code }}
+    description: Scanner exit code before fail-on-findings handling.
 
 runs:
   using: composite
   steps:
-    - name: Build AxiomGuard action runtime
+    - name: Build AxiomGuard
       shell: bash
       run: |
         set -euo pipefail
-        npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
+        npm --prefix "$GITHUB_ACTION_PATH" ci
         npm --prefix "$GITHUB_ACTION_PATH" run build
 
     - name: Scan repository
@@ -58,6 +53,7 @@ runs:
         set -euo pipefail
         repo_path() {
           node - "$GITHUB_WORKSPACE" "$1" <<'NODE'
+        const fs = require('node:fs');
         const path = require('node:path');
         const [rootArg, input] = process.argv.slice(2);
         const root = path.resolve(rootArg);
@@ -65,6 +61,14 @@ runs:
         if (candidate !== root && !candidate.startsWith(root + path.sep)) {
           process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\n');
           process.exit(2);
+        }
+        if (fs.existsSync(candidate)) {
+          const resolvedRoot = fs.realpathSync.native(root);
+          const resolvedCandidate = fs.realpathSync.native(candidate);
+          if (resolvedCandidate !== resolvedRoot && !resolvedCandidate.startsWith(resolvedRoot + path.sep)) {
+            process.stderr.write('AxiomGuard action paths must resolve inside GITHUB_WORKSPACE.\n');
+            process.exit(2);
+          }
         }
         process.stdout.write(candidate);
         NODE
