@@ -72,8 +72,8 @@ Review the results, create a baseline only for accepted existing findings, commi
 
 ## Running the container instead
 
-The published image scans a mounted workspace without Node.js on the runner:
+The published image scans a mounted workspace without Node.js on the runner. Until a current semver release is published, use the moving `edge` image for evaluation only; production consumers should pin an existing release tag or digest:
 
 ```bash
-docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:0.7.1 scan /workspace --sarif --output /tmp/axiomguard.sarif
+docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:edge scan /workspace --sarif --output /tmp/axiomguard.sarif
 ```
