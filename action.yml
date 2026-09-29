@@ -1,6 +1,9 @@
-name: AxiomGuard secret scan
-
-description: Scan a repository for high-confidence secret patterns.
+name: AxiomGuard Secret Scan
+description: Scan a repository for high-confidence secret patterns and produce SARIF without echoing matched values.
+author: AxiomNode Lab
+branding:
+  icon: shield
+  color: blue
 
 inputs:
   path:
@@ -20,24 +23,26 @@ inputs:
     required: false
     default: ''
   annotations:
-    description: Emit GitHub workflow annotations for findings.
+    description: Emit GitHub workflow warning annotations for new findings without exposing matched values.
     required: false
     default: 'true'
 
 outputs:
   sarif:
-    description: Absolute path to the generated SARIF file.
+    description: Absolute path to the generated SARIF 2.1.0 file.
+    value: ${{ steps.scan.outputs.sarif }}
   exit-code:
-    description: Scanner exit code before fail-on-findings handling.
+    description: AxiomGuard scanner exit code (0 clean, 1 new findings unless fail-on-findings is false, 2 error).
+    value: ${{ steps.scan.outputs.exit-code }}
 
 runs:
   using: composite
   steps:
-    - name: Build AxiomGuard
+    - name: Build AxiomGuard action runtime
       shell: bash
       run: |
         set -euo pipefail
-        npm --prefix "$GITHUB_ACTION_PATH" ci
+        npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
         npm --prefix "$GITHUB_ACTION_PATH" run build
 
     - name: Scan repository
