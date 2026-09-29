@@ -159,10 +159,26 @@ jobs:
         with:
           path: '../'
           fail-on-findings: 'true'
-      - name: Validate action path boundary
+      - name: Create symlink pointing outside the workspace
+        shell: bash
+        run: |
+          printf '{"baseline":"/tmp/nope"}\n' > "$RUNNER_TEMP/axiomguard-outside-config.json"
+          ln -s "$RUNNER_TEMP/axiomguard-outside-config.json" "tests/action fixture/outside-config.json"
+      - name: Reject symlinked action config outside the workspace
+        id: invalid-symlink-config
+        continue-on-error: true
+        uses: ./
+        with:
+          path: 'tests/action fixture'
+          config: 'tests/action fixture/outside-config.json'
+          fail-on-findings: 'true'
+      - name: Validate action path boundaries
         env:
-          OUTCOME: ${{ steps.invalid-action-path.outcome }}
-        run: test "$OUTCOME" = failure
+          INVALID_PATH_OUTCOME: ${{ steps.invalid-action-path.outcome }}
+          INVALID_SYMLINK_OUTCOME: ${{ steps.invalid-symlink-config.outcome }}
+        run: |
+          test "$INVALID_PATH_OUTCOME" = failure
+          test "$INVALID_SYMLINK_OUTCOME" = failure
       - name: Validate SARIF output
         env:
           SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}
