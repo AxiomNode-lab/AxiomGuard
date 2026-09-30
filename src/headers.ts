@@ -38,6 +38,11 @@ export function buildContentSecurityPolicy(directives: ContentSecurityPolicyDire
 }
 
 export interface HstsOptions { maxAge?: number; includeSubDomains?: boolean; preload?: boolean; }
+
+function assertBooleanOption(name: string, value: boolean | undefined): void {
+  if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+}
+
 export interface SecurityHeadersOptions {
   contentSecurityPolicy?: ContentSecurityPolicyDirectives | string | false;
   contentSecurityPolicyReportOnly?: boolean;
@@ -55,6 +60,16 @@ export interface SecurityHeadersOptions {
 }
 
 export function createSecurityHeaders(options: SecurityHeadersOptions = {}): Record<string, string> {
+  assertBooleanOption('contentSecurityPolicyReportOnly', options.contentSecurityPolicyReportOnly);
+  assertBooleanOption('originAgentCluster', options.originAgentCluster);
+  assertBooleanOption('xssProtection', options.xssProtection);
+  if (options.hsts !== undefined && options.hsts !== false && (typeof options.hsts !== 'object' || options.hsts === null || Array.isArray(options.hsts))) {
+    throw new TypeError('hsts must be an object or false');
+  }
+  if (options.hsts !== undefined && options.hsts !== false) {
+    assertBooleanOption('hsts.includeSubDomains', options.hsts.includeSubDomains);
+    assertBooleanOption('hsts.preload', options.hsts.preload);
+  }
   const headers: Record<string, string> = {
     'X-Content-Type-Options': 'nosniff',
     'X-Download-Options': 'noopen',

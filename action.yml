@@ -7,7 +7,7 @@ branding:
 
 inputs:
   path:
-    description: Repository-relative directory to scan.
+    description: Repository-relative directory to scan. Absolute paths and paths outside GITHUB_WORKSPACE are rejected.
     required: false
     default: .
   fail-on-findings:
@@ -15,11 +15,11 @@ inputs:
     required: false
     default: 'true'
   config:
-    description: Optional repository-relative AxiomGuard config path. Defaults to .axiomguard.json in the scan root when present.
+    description: Optional repository-relative AxiomGuard config path. Absolute paths and paths outside GITHUB_WORKSPACE are rejected. Defaults to .axiomguard.json in the scan root when present.
     required: false
     default: ''
   baseline:
-    description: Optional repository-relative baseline path. Defaults to .axiomguard-baseline.json or the config baseline value.
+    description: Optional repository-relative baseline path. Absolute paths and paths outside GITHUB_WORKSPACE are rejected. Defaults to .axiomguard-baseline.json or the config baseline value.
     required: false
     default: ''
   annotations:
@@ -56,12 +56,37 @@ runs:
         AXIOMGUARD_ANNOTATIONS: ${{ inputs.annotations }}
       run: |
         set -euo pipefail
-        abs() { if [[ "$1" = /* ]]; then printf '%s' "$1"; else printf '%s/%s' "$GITHUB_WORKSPACE" "$1"; fi; }
-        TARGET="$(abs "$AXIOMGUARD_INPUT_PATH")"
+        repo_path() {
+          node - "$GITHUB_WORKSPACE" "$1" <<'NODE'
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const [rootArg, input] = process.argv.slice(2);
+        const root = path.resolve(rootArg);
+        const candidate = path.resolve(root, input);
+        if (candidate !== root && !candidate.startsWith(root + path.sep)) {
+          process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\n');
+          process.exit(2);
+        }
+        if (fs.existsSync(candidate)) {
+          const resolvedRoot = fs.realpathSync.native(root);
+          const resolvedCandidate = fs.realpathSync.native(candidate);
+          if (resolvedCandidate !== resolvedRoot && !resolvedCandidate.startsWith(resolvedRoot + path.sep)) {
+            process.stderr.write('AxiomGuard action paths must resolve inside GITHUB_WORKSPACE.\n');
+            process.exit(2);
+          }
+        }
+        process.stdout.write(candidate);
+        NODE
+        }
+        if [[ -z "$AXIOMGUARD_INPUT_PATH" ]]; then
+          echo "::error::path must not be empty"
+          exit 2
+        fi
+        TARGET="$(repo_path "$AXIOMGUARD_INPUT_PATH")"
         SARIF="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.sarif"
         ARGS=(scan "$TARGET" --sarif --output "$SARIF")
-        if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$(abs "$AXIOMGUARD_CONFIG")"); fi
-        if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$(abs "$AXIOMGUARD_BASELINE")"); fi
+        if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$(repo_path "$AXIOMGUARD_CONFIG")"); fi
+        if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$(repo_path "$AXIOMGUARD_BASELINE")"); fi
         if [[ "$AXIOMGUARD_ANNOTATIONS" == "true" ]]; then ARGS+=(--github-annotations); fi
         if [[ "$AXIOMGUARD_FAIL" != "true" ]]; then ARGS+=(--no-fail); fi
         set +e

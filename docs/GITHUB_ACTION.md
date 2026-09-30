@@ -2,7 +2,7 @@
 
 The repository can be used directly as a composite GitHub Action. It scans the checked-out workspace and writes SARIF 2.1.0 without including matched credential values.
 
-> **Pinning:** use a release tag (`@v0.7.1`) or an immutable commit SHA in production. `@main` is for evaluation only. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
+> **Pinning:** use an existing release tag or an immutable commit SHA in production. Until the current version is released, the example below uses `@main` for evaluation only; production consumers should pin an existing release tag or immutable commit SHA. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
 
 ```yaml
 name: AxiomGuard
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - id: axiomguard
-        uses: AxiomNode-lab/AxiomGuard@v0.7.1
+        uses: AxiomNode-lab/AxiomGuard@main
         with:
           path: .
           fail-on-findings: 'true'
@@ -61,7 +61,7 @@ For an existing repository with known findings, start in audit mode rather than 
 
 ```yaml
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@v0.7.1
+  uses: AxiomNode-lab/AxiomGuard@main
   with:
     path: .
     fail-on-findings: 'false'
@@ -72,8 +72,8 @@ Review the results, create a baseline only for accepted existing findings, commi
 
 ## Running the container instead
 
-The published image scans a mounted workspace without Node.js on the runner:
+The published image scans a mounted workspace without Node.js on the runner. Until a current semver release is published, use the moving `edge` image for evaluation only; production consumers should pin an existing release tag or digest:
 
 ```bash
-docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:0.7.1 scan /workspace --sarif --output /tmp/axiomguard.sarif
+docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:edge scan /workspace --sarif --output /tmp/axiomguard.sarif
 ```

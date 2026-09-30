@@ -18,7 +18,7 @@ Use the complete package when convenience matters, or import a focused subpath w
 - **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
 - **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
 - **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
-- **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection.
+- **Provider-aware** — GitHub, Stripe, Slack, Meta and Standard Webhooks out of the box, with replay protection where the provider exposes a delivery/message identity or the application supplies a replay key.
 - **Typed end to end** — from `requireEnv` schemas to stable error codes.
 
 See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit and friends.
@@ -115,7 +115,7 @@ app.use('*', createHonoSecurityMiddleware({
 }));
 ```
 
-### Web-standard runtimes (Next.js middleware, SvelteKit, Cloudflare Workers, Bun, Deno)
+### Web-standard Fetch runtimes (Cloudflare Workers, Deno, Bun, and compatible framework runtimes)
 
 ```ts
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
@@ -130,7 +130,7 @@ export default {
 };
 ```
 
-All adapters share one validated pipeline (`createSecurityCore`): configuration errors throw during setup, malformed request metadata is handled defensively, `Vary` is merged with existing values, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
+All adapters share one validated security decision pipeline (`createSecurityCore`): configuration errors throw during setup, malformed request metadata is handled defensively, `Vary` is merged with existing values, and `X-Powered-By` is removed. Pass `headers` as a function to inject a per-request CSP nonce.
 
 See [Framework adapters](docs/ADAPTERS.md) for adapter options and Redis-backed integrations.
 
@@ -453,7 +453,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 
 ## Supported platforms
 
-- **Node.js:** 20, 22 and 24 on Linux, macOS and Windows. Node 20 has reached end-of-life upstream and will be dropped in a future minor.
+- **Node.js:** 20 or newer. CI verifies Node 20, 22, 24 and 26 on Linux, with Node 24 on macOS and Windows. Node 20 is end-of-life upstream and is retained for compatibility only; Node 24 is the recommended LTS line.
 - **TypeScript:** 5.x; declarations are emitted with `NodeNext` resolution.
 - **Versioning:** semantic versioning, pre-1.0. A minor release may tighten a security default; every such change ships with a migration note in [UPGRADING.md](UPGRADING.md).
 
@@ -462,7 +462,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [API reference](docs/API.md)
 - [Upgrading between versions](UPGRADING.md)
 - [Comparison with other libraries](docs/COMPARISON.md)
-- [Examples](https://github.com/AxiomNode-lab/AxiomGuard/tree/v0.7.1/examples)
+- [Examples](https://github.com/AxiomNode-lab/AxiomGuard/tree/main/examples)
 - [API protection](docs/API_PROTECTION.md)
 - [Framework adapters](docs/ADAPTERS.md)
 - [Safe fetch](docs/SAFE_FETCH.md)

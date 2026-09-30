@@ -8,7 +8,7 @@ each control and what AxiomGuard does differently.
 | Control | Common alternative | AxiomGuard | What AxiomGuard does not do |
 | --- | --- | --- | --- |
 | Security headers | `helmet` | `createSecurityHeaders`, presets, per-request CSP nonces, header-injection validation | Ship a default CSP for you; HSTS/COEP stay opt-in |
-| CORS | `cors`, `@fastify/cors`, `hono/cors` | `createCorsPolicy` validated at startup, never throws on request input, always sets `Vary`, PNA-aware, `allowHeaders: 'reflect'` | Route-level configuration; combine with your router |
+| CORS | `cors`, `@fastify/cors`, `hono/cors` | `createCorsPolicy` validated at startup, handles malformed request input defensively, always sets `Vary`, PNA-aware, `allowHeaders: 'reflect'` | Route-level configuration; combine with your router |
 | CSRF | `csrf-csrf`, `hono/csrf`, `lusca` | Signed session-bound tokens **and** Fetch-Metadata/Origin request policy | Store sessions or render forms |
 | Rate limiting | `express-rate-limit`, `rate-limiter-flexible` | Fixed-window store contract with bounded memory and atomic Redis adapters, IETF `RateLimit` headers, spoof-resistant `getClientIp` | Sliding windows, token buckets, distributed bot mitigation |
 | Webhook verification | `@octokit/webhooks`, `stripe.webhooks.constructEvent`, `svix`, `@slack/bolt` | One consistent API for GitHub, Stripe, Slack, Meta and Standard Webhooks, with replay protection on a shared store | Parse or type the provider payloads |

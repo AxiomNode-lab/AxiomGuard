@@ -13,6 +13,7 @@ import {
   requireEnv,
   serializeCookie,
   validateEnv,
+  createFetchSecurityHandler,
 } from '../dist/index.js';
 
 test('security headers disable legacy XSS auditors and validate HSTS preload', () => {
@@ -22,6 +23,11 @@ test('security headers disable legacy XSS auditors and validate HSTS preload', (
   assert.throws(() => createSecurityHeaders({ hsts: { preload: true } }), /preload requires includeSubDomains/);
   assert.throws(() => createSecurityHeaders({ hsts: { preload: true, includeSubDomains: true, maxAge: 3600 } }), /preload/);
   assert.equal(createSecurityHeaders({ hsts: { preload: true, includeSubDomains: true } })['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains; preload');
+});
+
+test('adapter security options reject string booleans at construction', () => {
+  assert.throws(() => createFetchSecurityHandler({ handlePreflight: 'false' }), /handlePreflight must be a boolean/);
+  assert.throws(() => createFetchSecurityHandler({ removePoweredBy: 'false' }), /removePoweredBy must be a boolean/);
 });
 
 test('CSP builder accepts valueless directives and nonce sources', () => {

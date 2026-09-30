@@ -45,7 +45,7 @@ export interface SafeUrlOptions {
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255 || !Number.isInteger(part))) return true;
-  const [a, b, c] = parts as [number, number, number, number];
+  const [a, b, c, d] = parts as [number, number, number, number];
   return (
     a === 0 ||
     a === 10 ||
@@ -53,8 +53,9 @@ function isPrivateIPv4(ip: string): boolean {
     (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 0 && c === 0) ||
+    (a === 192 && b === 0 && c === 0 && d <= 8) ||
     (a === 192 && b === 0 && c === 2) ||
+    (a === 192 && b === 0 && c === 0 && d >= 170 && d <= 171) ||
     (a === 192 && b === 88 && c === 99) ||
     (a === 192 && b === 168) ||
     (a === 198 && (b === 18 || b === 19)) ||
@@ -124,6 +125,8 @@ function isPrivateIPv6(ip: string): boolean {
   if ((first & 0xffc0) === 0xfec0) return true; // fec0::/10 deprecated site-local
   if ((first & 0xff00) === 0xff00) return true; // ff00::/8 multicast
   if (first === 0x0100 && words.slice(1, 4).every((word) => word === 0)) return true; // 100::/64 discard-only
+  if (first === 0x0100 && second === 0 && words[2] === 0 && words[3] === 1) return true; // 100:0:0:1::/64 dummy prefix
+  if ((first & 0xff00) === 0x5f00) return true; // 5f00::/16 SRv6 SIDs (not globally reachable)
   if (first === 0x2001 && second === 0x0db8) return true; // 2001:db8::/32 documentation
   if (first === 0x2001 && second === 0x0002 && words[2] === 0) return true; // 2001:2::/48 benchmarking
   if ((first & 0xfff0) === 0x3ff0) return true; // 3fff::/20 documentation (RFC 9637)
@@ -169,6 +172,12 @@ function hostMatches(hostname: string, allowedHosts: readonly string[]): boolean
  */
 export function assertSafeUrl(input: string | URL, options: SafeUrlOptions = {}): URL {
   const url = input instanceof URL ? new URL(input.toString()) : new URL(input);
+  if (options.protocols !== undefined && (!Array.isArray(options.protocols) || options.protocols.some((protocol) => protocol !== 'http:' && protocol !== 'https:'))) {
+    throw new TypeError("protocols must contain only 'http:' and 'https:'");
+  }
+  for (const [name, value] of [['allowCredentials', options.allowCredentials], ['dangerouslyAllowPrivateTargets', options.dangerouslyAllowPrivateTargets]] as const) {
+    if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+  }
   const protocols = options.protocols ?? ['https:', 'http:'];
 
   if (!protocols.includes(url.protocol as 'http:' | 'https:')) {

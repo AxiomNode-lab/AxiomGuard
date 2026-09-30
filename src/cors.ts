@@ -76,7 +76,14 @@ function isReflectAllowedHeaders(value: string | null | undefined): string | und
  * operator errors (wildcard with credentials, malformed configured origins,
  * bad header tokens) at construction time rather than on the first request.
  */
+function assertBooleanOption(name: string, value: boolean | undefined): void {
+  if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+}
+
 export function createCorsPolicy(options: CorsOptions): CorsPolicy {
+  assertBooleanOption('allowCredentials', options.allowCredentials);
+  assertBooleanOption('allowNullOrigin', options.allowNullOrigin);
+  assertBooleanOption('allowPrivateNetwork', options.allowPrivateNetwork);
   const credentials = options.allowCredentials ?? false;
   const allowNullOrigin = options.allowNullOrigin ?? false;
   if (options.origins === '*' && credentials) throw new TypeError('CORS wildcard origin cannot be combined with credentials');
@@ -103,6 +110,7 @@ export function createCorsPolicy(options: CorsOptions): CorsPolicy {
     if (configured !== '*') headers.Vary = preflight ? 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers' : 'Origin';
 
     let allowedOrigin: string | null = null;
+    if (origin === 'null' && !allowNullOrigin) return { allowed: false, preflight, headers };
     if (configured === '*') allowedOrigin = '*';
     else if (requestOrigin !== null) {
       const allowed = configured instanceof Set ? configured.has(requestOrigin) : configured(requestOrigin);

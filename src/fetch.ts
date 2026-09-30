@@ -69,6 +69,14 @@ function validateSafeFetchOptions(options: SafeFetchOptions): void {
   if (options.maxResponseBytes !== undefined && (!Number.isInteger(options.maxResponseBytes) || options.maxResponseBytes < 1)) {
     throw new RangeError('maxResponseBytes must be a positive integer');
   }
+  for (const [name, value] of [
+    ['allowCredentials', options.allowCredentials],
+    ['dangerouslyAllowPrivateTargets', options.dangerouslyAllowPrivateTargets],
+    ['stripSensitiveHeadersOnCrossOriginRedirect', options.stripSensitiveHeadersOnCrossOriginRedirect],
+    ['allowInsecureRedirectDowngrade', options.allowInsecureRedirectDowngrade],
+  ] as const) {
+    if (value !== undefined && typeof value !== 'boolean') throw new TypeError(`${name} must be a boolean`);
+  }
   if (options.redirect !== undefined && options.redirect !== 'follow' && options.redirect !== 'manual') {
     throw new TypeError("redirect must be 'follow' or 'manual'");
   }

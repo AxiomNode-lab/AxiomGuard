@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.7.2] - 2026-09-28
+
+Security and release-pipeline hardening release.
+
+### Security
+
+- Hardened release workflows against shell interpretation of untrusted GitHub release metadata.
+- Release publication now verifies that tagged source is reachable from `main` and that the tagged package version matches `main` before running repository code in privileged publication jobs.
+- Disabled persisted checkout credentials in GitHub Actions workflows.
+- Added runtime validation for cookie `SameSite`, `Priority`, `secure` and `httpOnly` attributes.
+- Added runtime validation for security-header and adapter boolean options, plus HSTS boolean flags.
+- Pinned the release container's Node base image by version and digest for reproducible builds.
+- Confined GitHub Action `path`, `config`, and `baseline` inputs to `GITHUB_WORKSPACE` and added an out-of-workspace regression test.
+- Expanded outbound URL blocking for non-global IPv4 special-use addresses covered by the IANA registry.
+
+### Changed
+
+- GitHub Packages stable publication now runs only for explicit releases or manual publication from the current `main` commit.
+- Added a CI regression check for unsafe GitHub Actions workflow patterns.
+- Tightened public runtime compatibility wording and removed stale pre-release tag references from examples.
+
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 follows semantic versioning in intent (pre-1.0 minors may change defaults; see
@@ -19,7 +40,7 @@ Packaging and public-surface maintenance release.
 
 ## [0.7.0] - 2026-09-13
 
-Security audit release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
+Security hardening release. Breaking changes are listed in [UPGRADING.md](UPGRADING.md).
 
 ### Security
 

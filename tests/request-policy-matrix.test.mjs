@@ -19,6 +19,12 @@ const DEFAULT_EXPECTATIONS = {
 };
 const ALLOW_REASONS = new Set(['safe-method', 'same-origin', 'same-site', 'trusted-origin', 'non-browser-client']);
 
+test('request policy rejects string booleans in security options', () => {
+  assert.throws(() => createRequestPolicy({ allowNoOrigin: 'false' }), /allowNoOrigin must be a boolean/);
+  assert.throws(() => createRequestPolicy({ allowSameSite: 'false' }), /allowSameSite must be a boolean/);
+  assert.throws(() => createRequestPolicy({ allowCrossSiteFromAllowedOrigins: 'false' }), /allowCrossSiteFromAllowedOrigins must be a boolean/);
+});
+
 test('request policy decision matrix under default options', () => {
   const policy = createRequestPolicy({ allowedOrigins: [LISTED] });
   for (const [siteName, secFetchSite] of Object.entries(sites)) {

@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Zero-runtime-dependency security SDK for Node.js: webhooks (GitHub, Stripe, Slack, Meta, Standard Webhooks), request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, secret scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -159,8 +159,9 @@
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "test:integration:frameworks": "npm run build && node --test tests/frameworks.integration.mjs",
     "test:integration:redis": "npm run build && node --test tests/redis.integration.mjs",
-    "check": "npm run typecheck && npm run lint && npm test && npm run test:types",
+    "check": "npm run check:workflows && npm run typecheck && npm run lint && npm test && npm run test:types",
     "benchmark": "npm run build && node bench/benchmark.mjs",
+    "check:workflows": "node scripts/check-workflows.mjs",
     "prepack": "npm run build",
     "scan:self": "npm run build && node dist/cli.js scan ."
   },

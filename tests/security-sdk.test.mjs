@@ -3,11 +3,30 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createCorsHeaders, createCspNonce, createCsrfToken, createSecurityHeaders, redactSecrets, serializeCookie, validateEnv, verifyCsrfToken, verifyGitHubWebhook, verifyStripeWebhook, MemoryReplayStore } from '../dist/index.js';
 
+test('cors blocks Origin null under wildcard policy unless explicitly enabled', () => {
+  assert.equal(createCorsHeaders('null', { origins: '*' }), null);
+  assert.equal(createCorsHeaders('null', { origins: '*', allowNullOrigin: true })?.['Access-Control-Allow-Origin'], '*');
+});
+
+test('cors rejects string booleans in security options', () => {
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowNullOrigin: 'false' }), /allowNullOrigin must be a boolean/);
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowCredentials: 'false' }), /allowCredentials must be a boolean/);
+  assert.throws(() => createCorsHeaders('https://example.com', { origins: ['https://example.com'], allowPrivateNetwork: 'false' }), /allowPrivateNetwork must be a boolean/);
+});
+
+test('csrf rejects string booleans that could disable session binding', () => {
+  assert.throws(() => createCsrfToken('0123456789abcdef', { allowUnbound: 'false' }), /allowUnbound must be a boolean/);
+  const token = createCsrfToken('0123456789abcdef', { sessionId: 'user-1' });
+  assert.throws(() => verifyCsrfToken(token, '0123456789abcdef', { sessionId: 'user-1', allowUnbound: 'false' }), /allowUnbound must be a boolean/);
+});
+
 test('secure cookies enforce host prefix invariants', () => {
   const value = serializeCookie('__Host-session', 'abc', { sameSite: 'Strict' });
   assert.match(value, /Secure/); assert.match(value, /HttpOnly/); assert.match(value, /Path=\//);
   assert.throws(() => serializeCookie('__Host-session', 'abc', { domain: 'example.com' }));
   assert.throws(() => serializeCookie('session', 'abc', { sameSite: 'None', secure: false }));
+  assert.throws(() => serializeCookie('session', 'abc', { sameSite: 'bad' }));
+  assert.throws(() => serializeCookie('session', 'abc', { priority: 'High; Set-Cookie: evil=true' }));
 });
 
 test('cors rejects unsafe policies and varies explicit origins', () => {
@@ -42,6 +61,14 @@ test('header helper emits cross-origin protections and CSP report-only', () => {
   const headers = createSecurityHeaders({ contentSecurityPolicy: { 'default-src': ["'self'"] }, contentSecurityPolicyReportOnly: true });
   assert.equal(headers['Cross-Origin-Opener-Policy'], 'same-origin');
   assert.ok(headers['Content-Security-Policy-Report-Only']);
+});
+
+test('header helper rejects string booleans and invalid HSTS shape at runtime', () => {
+  assert.throws(() => createSecurityHeaders({ contentSecurityPolicy: { 'default-src': ["'self'"] }, contentSecurityPolicyReportOnly: 'false' }), /contentSecurityPolicyReportOnly must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ originAgentCluster: 'false' }), /originAgentCluster must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ xssProtection: 'false' }), /xssProtection must be a boolean/);
+  assert.throws(() => createSecurityHeaders({ hsts: 'false' }), /hsts must be an object or false/);
+  assert.throws(() => createSecurityHeaders({ hsts: { includeSubDomains: 'false' } }), /hsts.includeSubDomains must be a boolean/);
 });
 
 test('env supports ports numbers json and defaults', () => {
