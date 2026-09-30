@@ -94,13 +94,17 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          for ATTEMPT in 1 2 3 4 5; do
+          # npm registry propagation can lag successful publication. Allow a bounded
+          # verification window without treating eventual consistency as a publish failure.
+          for ATTEMPT in {1..12}; do
             ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org 2>/dev/null || true)"
             if [ "$ACTUAL" = "$VERSION" ]; then
               echo "Verified @axiomnode-lab/guard@${VERSION} on npmjs."
               exit 0
             fi
-            sleep $((ATTEMPT * 3))
+            if [ "$ATTEMPT" -lt 12 ]; then
+              sleep 10
+            fi
           done
-          echo "::error::Published npmjs version ${VERSION} was not readable after retries."
+          echo "::error::Published npmjs version ${VERSION} was not readable after the bounded registry propagation window."
           exit 1
