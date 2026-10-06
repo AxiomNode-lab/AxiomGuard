@@ -455,7 +455,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 
 ## Supported platforms
 
-- **Node.js:** 20 or newer. CI verifies Node 20, 22, 24 and 26 on Linux, with Node 24 on macOS and Windows. Node 20 is end-of-life upstream and is retained for compatibility only; Node 24 is the recommended LTS line.
+- **Node.js:** 22 or newer. CI verifies Node 22, 24 and 26 on Linux, with Node 24 on macOS and Windows. Node 24 is the recommended LTS line; Node 26 is additionally qualified as the current release line.
 - **TypeScript:** 5.x; declarations are emitted with `NodeNext` resolution.
 - **Versioning:** semantic versioning, pre-1.0. A minor release may tighten a security default; every such change ships with a migration note in [UPGRADING.md](UPGRADING.md).
 
