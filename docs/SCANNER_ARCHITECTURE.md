@@ -36,6 +36,8 @@ Repository processing is static and deterministic. The context cannot execute co
 
 ## Implemented and deferred boundaries
 
-The generalized contracts, registry, safe repository context, validation, and orchestration foundation are implemented. Real security packs, legacy-secret adaptation, stack detection, generalized SARIF and CLI output, semantic fingerprints, baselines, and risk scoring remain deferred. Rules must remain deterministic, secret-safe, and independent of an LLM. The existing legacy secret scanner, its fingerprints, JSON, SARIF, CLI behavior, and exports remain unchanged.
+The generalized contracts, registry, safe repository context, validation, and orchestration foundation are implemented. The Core Security Pack provides `CORE-001`, which adapts the authoritative legacy secret catalog and line matcher into normalized findings while preserving legacy output. Both paths reuse the existing location-based fingerprint; the generalized path does not apply legacy baselines.
+
+Additional Core rules, specialized packs, stack detection, generalized SARIF and CLI output, semantic fingerprints, generalized baselines, and risk scoring remain deferred. Rules must remain deterministic, secret-safe, and independent of an LLM. The existing legacy secret scanner, its fingerprints, baseline format, JSON, SARIF, CLI behavior, and exports remain unchanged.
 
 AxiomGuard remains the open-source Security Engine, SDK, and CLI. User accounts, SaaS authentication, organizations, subscriptions, billing, dashboards, customer management, hosted databases, queues, workers, GitHub application user interfaces, and AI conversations belong in a separate future AxiomGuard Cloud repository, not here.

@@ -40,6 +40,7 @@ const requiredPublicFiles = [
   'docs/SAFE_FETCH.md',
   'docs/SCANNER.md',
   'docs/SCANNER_ARCHITECTURE.md',
+  'docs/rules/CORE-001.md',
   'docs/axiomguard-demo.svg',
 ];
 for (const file of requiredPublicFiles) {
@@ -69,10 +70,13 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const subpaths = ${JSON.stringify(subpaths)};
 const root = await import('@axiomnode-lab/guard');
+const scanner = await import('@axiomnode-lab/guard/scanner');
 if (typeof root.secureToken !== 'function' || typeof root.safeFetch !== 'function') throw new Error('root export is incomplete');
 if (typeof root.evaluateRequestPolicy !== 'function' || typeof root.claimIdempotencyKey !== 'function') throw new Error('API protection exports are incomplete');
 if (typeof root.verifyMetaWebhook !== 'function' || typeof root.verifyStandardWebhook !== 'function') throw new Error('provider webhook exports are incomplete');
 if (typeof root.scanRepository !== 'function' || typeof root.SecurityPackRegistry !== 'function') throw new Error('generalized scanner exports are incomplete');
+if (typeof root.createCoreSecurityPack !== 'function' || root.CORE_SECURITY_PACK_VERSION !== '1.0.0') throw new Error('Core Security Pack exports are incomplete');
+if (scanner.createCoreSecurityPack !== root.createCoreSecurityPack || scanner.CORE_SECURITY_PACK_VERSION !== root.CORE_SECURITY_PACK_VERSION) throw new Error('Core Security Pack scanner subpath exports are incomplete');
 if (typeof require('@axiomnode-lab/guard').safeFetch !== 'function') throw new Error('require() of the root export failed');
 if (require('@axiomnode-lab/guard/package.json').version !== ${JSON.stringify(packageJson.version)}) throw new Error('package.json export mismatch');
 for (const subpath of subpaths) {
@@ -85,7 +89,7 @@ for (const subpath of subpaths) {
   run(process.execPath, ['verify.mjs'], workspace);
 
   const typeConsumer = `
-import { SecurityPackRegistry, claimIdempotencyKey, evaluateRequestPolicy, requireEnv, scanRepository, secureToken, safeFetch, verifyMetaWebhook } from '@axiomnode-lab/guard';
+import { CORE_SECURITY_PACK_VERSION, SecurityPackRegistry, claimIdempotencyKey, createCoreSecurityPack, evaluateRequestPolicy, requireEnv, scanRepository, secureToken, safeFetch, verifyMetaWebhook } from '@axiomnode-lab/guard';
 import type { SecurityPack, SecurityRule } from '@axiomnode-lab/guard/scanner';
 import { MemoryIdempotencyStore } from '@axiomnode-lab/guard/idempotency';
 import { verifyGitHubWebhookDelivery } from '@axiomnode-lab/guard/webhooks';
@@ -105,6 +109,10 @@ void verifyGitHubWebhookDelivery;
 void createFetchSecurityHandler;
 void SecurityPackRegistry;
 void scanRepository;
+const corePack: SecurityPack = createCoreSecurityPack();
+const coreVersion: '1.0.0' = CORE_SECURITY_PACK_VERSION;
+void corePack;
+void coreVersion;
 let rule!: SecurityRule;
 let pack!: SecurityPack;
 void rule;

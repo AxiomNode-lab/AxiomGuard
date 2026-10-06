@@ -60,8 +60,13 @@ async function hasNullByte(filePath: string): Promise<boolean> {
   const handle = await open(filePath, 'r');
   try {
     const buffer = Buffer.allocUnsafe(8192);
-    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-    return buffer.subarray(0, bytesRead).includes(0);
+    let position = 0;
+    while (true) {
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, position);
+      if (bytesRead === 0) return false;
+      if (buffer.subarray(0, bytesRead).includes(0)) return true;
+      position += bytesRead;
+    }
   } finally {
     await handle.close();
   }

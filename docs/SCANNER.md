@@ -2,6 +2,34 @@
 
 AxiomGuard's repository scanner is intentionally conservative: every rule is a provider-shaped prefix with enough trailing entropy to stay quiet on ordinary code. `axiomguard rules` lists the current rules and their severities. Configuration, deterministic non-secret fingerprints, baselines and GitHub annotations make it easier to adopt the scanner without permanently ignoring new findings.
 
+## Core Security Pack
+
+The generalized scanner exposes the first real pack through `createCoreSecurityPack()`. Registration is explicit so applications retain deterministic control over enabled packs:
+
+```ts
+import {
+  CORE_SECURITY_PACK_VERSION,
+  SecurityPackRegistry,
+  createCoreSecurityPack,
+  scanRepository,
+} from '@axiomnode-lab/guard/scanner';
+
+const registry = new SecurityPackRegistry([createCoreSecurityPack()]);
+const result = await scanRepository({
+  target: '.',
+  registry,
+  packIds: ['core'],
+  engineVersion: '0.7.2',
+  rulesetVersion: CORE_SECURITY_PACK_VERSION,
+});
+```
+
+The pack currently contains one universal rule, [`CORE-001 — Potential committed secret material`](./rules/CORE-001.md). It adapts every existing legacy secret category into normalized findings in one pass over eligible files. The category name, such as `private-key`, `github-token`, or `sensitive-env-value`, is emitted as structured evidence; the matched value and source line are not.
+
+Severity maps deterministically: `private-key` is `critical`, other legacy `error` categories are `high`, and legacy `warning` categories are `medium`. Every result has `high` confidence because the patterns are deliberately narrow. Confidence describes the strength of the match and does not prove that a credential is active or that its impact is critical.
+
+`CORE-001` reuses the legacy location-based fingerprint (`legacy rule + repository-relative file + line`) and prefixes that fingerprint with `CORE-001:` for its finding ID. It never hashes matched content. The generalized flow does not apply legacy baseline files yet, and the existing CLI, JSON, SARIF, GitHub annotations, and baseline behavior continue to use the legacy `scanSecrets()` path unchanged. Generalized CLI and SARIF integration is deferred.
+
 ## What is scanned
 
 Text files by extension (source, config, infrastructure, notebooks, CSV), `.env*` files, key material (`.pem`, `.key`, `.asc`, `id_rsa`, `id_ed25519`, …) and extensionless configuration such as `Dockerfile`, `Makefile`, `.npmrc`, `.netrc` and `.pypirc`. Files containing NUL bytes, files over `maxFileBytes` (1 MB) and symbolic links are skipped. `.gitignore` is not consulted; `.git`, `node_modules`, `dist`, `build`, `coverage`, `vendor`, `venv`, `target` and similar directories are ignored by default (`ignoreDirectories` replaces the list). A single file can be scanned as well as a directory.

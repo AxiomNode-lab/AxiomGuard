@@ -2,7 +2,7 @@ import type { FindingConfidence, SecurityPack, SecurityRule, SecuritySeverity } 
 import { ScannerError } from './errors.js';
 import { compareStrings } from './file-policy.js';
 
-const ID_PATTERN = /^[a-z0-9]+(?:[._/-][a-z0-9]+)*$/;
+const ID_PATTERN = /^[A-Za-z0-9]+(?:[._/-][A-Za-z0-9]+)*$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const SEVERITIES = new Set<SecuritySeverity>(['critical', 'high', 'medium', 'low', 'info']);
 const CONFIDENCES = new Set<FindingConfidence>(['high', 'medium', 'low']);

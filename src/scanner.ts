@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -11,6 +10,7 @@ import {
   mapWithConcurrency,
   normalizePathSeparators,
 } from './scanner/file-policy.js';
+import { createLegacySecretFingerprint, getInternalSecretRule, inspectSecretText, listInternalSecretRules } from './scanner/secret-detection.js';
 
 export {
   SCAN_SCHEMA_VERSION,
@@ -32,6 +32,7 @@ export {
   type SecurityRule,
 } from './scanner/contracts.js';
 export { ScannerError, type ScannerErrorCode, type ScannerErrorDetails } from './scanner/errors.js';
+export { CORE_SECURITY_PACK_VERSION, createCoreSecurityPack } from './scanner/core-pack.js';
 export { SecurityPackRegistry } from './scanner/registry.js';
 export { RepositoryScanContext, createRepositoryScanContext, type RepositoryScanContextOptions } from './scanner/repository.js';
 export { scanRepository, type ScanRepositoryOptions } from './scanner/runtime.js';
@@ -73,50 +74,7 @@ export interface SecretRuleInfo {
   severity: SecretSeverity;
 }
 
-interface SecretRule extends SecretRuleInfo {
-  pattern: RegExp;
-}
-
 const DEFAULT_CONCURRENCY = DEFAULT_FILESYSTEM_CONCURRENCY;
-
-// Whole-value placeholders (anchored to the end) and reference prefixes such as `${VAR}`, `%VAR%`, `{{ x }}`.
-const PLACEHOLDER_WORD = String.raw`(?:changeme|change-me|example|placeholder|dummy|sample|your[_-]?[a-z0-9_-]+|<[^>]+>|\*{3,}|x{4,}|undefined|null|none|true|false)`;
-const PLACEHOLDER_PREFIX = String.raw`(?:\$|%[A-Za-z_]|\{\{|<)`;
-const NOT_PLACEHOLDER = String.raw`(?!$|["']?${PLACEHOLDER_WORD}["']?\s*$|["']?${PLACEHOLDER_PREFIX})`;
-// Values must look like credentials rather than words: quoted, or containing a digit or symbol.
-const CREDENTIAL_VALUE = String.raw`(?:["'][^"']{6,}["']|(?=[^\s"',;]*[0-9!@#$%^&*+/=~_-])[^\s"',;]{6,})`;
-
-// Keep this set deliberately narrow. Each provider-shaped rule should have a
-// stable, documented prefix and enough trailing entropy to avoid turning the
-// scanner into a generic high-noise string detector.
-const RULES: readonly SecretRule[] = [
-  { name: 'private-key', severity: 'error', description: 'Private key material appears to be committed.', pattern: /-----BEGIN(?: [A-Z0-9]+)* PRIVATE KEY(?: BLOCK)?-----/ },
-  { name: 'github-token', severity: 'error', description: 'A GitHub token-shaped credential appears to be committed.', pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/ },
-  { name: 'gitlab-token', severity: 'error', description: 'A GitLab token-shaped credential appears to be committed.', pattern: /\bgl(?:pat|rt|dt|ptt|soat|oas)-[A-Za-z0-9_-]{20,}\b/ },
-  { name: 'aws-access-key', severity: 'error', description: 'An AWS access key identifier appears to be committed.', pattern: /\b(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}\b/ },
-  { name: 'stripe-live-secret', severity: 'error', description: 'A Stripe live-mode secret or restricted API key appears to be committed.', pattern: /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/ },
-  { name: 'slack-token', severity: 'error', description: 'A Slack bot, user, app-level or refresh token appears to be committed.', pattern: /\bxox(?:[bpasr]|e\.xox[bp])-[A-Za-z0-9-]{20,}\b/ },
-  { name: 'slack-webhook-url', severity: 'warning', description: 'A Slack incoming-webhook URL appears to be committed.', pattern: /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]{6,}\/B[A-Z0-9]{6,}\/[A-Za-z0-9]{20,}/ },
-  { name: 'openai-api-key', severity: 'error', description: 'An OpenAI API key appears to be committed.', pattern: /\bsk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20}T3BlbkFJ[A-Za-z0-9_-]{20}\b|\bsk-proj-[A-Za-z0-9_-]{60,}\b/ },
-  { name: 'anthropic-api-key', severity: 'error', description: 'An Anthropic API key appears to be committed.', pattern: /\bsk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_-]{80,}\b/ },
-  { name: 'google-api-key', severity: 'warning', description: 'A Google API key appears to be committed.', pattern: /\bAIza[0-9A-Za-z_-]{35}\b/ },
-  { name: 'npm-token', severity: 'error', description: 'An npm access token appears to be committed.', pattern: /\bnpm_[A-Za-z0-9]{36}\b/ },
-  { name: 'sendgrid-api-key', severity: 'error', description: 'A SendGrid API key appears to be committed.', pattern: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/ },
-  { name: 'huggingface-token', severity: 'error', description: 'A Hugging Face access token appears to be committed.', pattern: /\bhf_[A-Za-z0-9]{34}\b/ },
-  { name: 'digitalocean-token', severity: 'error', description: 'A DigitalOcean API token appears to be committed.', pattern: /\bdo[opr]_v1_[a-f0-9]{64}\b/ },
-  { name: 'shopify-token', severity: 'error', description: 'A Shopify access token appears to be committed.', pattern: /\bshp(?:at|ss|ca|pa)_[a-fA-F0-9]{32}\b/ },
-  { name: 'pypi-token', severity: 'error', description: 'A PyPI upload token appears to be committed.', pattern: /\bpypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}\b/ },
-  { name: 'vault-token', severity: 'error', description: 'A HashiCorp Vault token appears to be committed.', pattern: /\bhv[sb]\.[A-Za-z0-9_-]{24,}\b/ },
-  { name: 'age-secret-key', severity: 'error', description: 'An age encryption secret key appears to be committed.', pattern: /\bAGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}\b/ },
-  { name: 'telegram-bot-token', severity: 'warning', description: 'A Telegram bot token appears to be committed.', pattern: /\b\d{8,10}:AA[A-Za-z0-9_-]{33}\b/ },
-  { name: 'connection-string-password', severity: 'warning', description: 'A database or broker URL with an embedded password appears to be committed.', pattern: new RegExp(String.raw`\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?|mssql|clickhouse):\/\/[^:/\s@]+:(?!${PLACEHOLDER_WORD}@|${PLACEHOLDER_PREFIX})[^@/\s]{8,}@`, 'i') },
-  {
-    name: 'sensitive-env-value',
-    severity: 'warning',
-    description: 'A sensitive environment variable appears to contain a non-placeholder value.',
-    pattern: new RegExp(String.raw`^\s*(?:export\s+|ENV\s+|ARG\s+|-\s*)?[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|API_?KEY|TOKEN|PRIVATE_KEY)(?:_[A-Z0-9]+)*\s*[=:]\s*${NOT_PLACEHOLDER}${CREDENTIAL_VALUE}`, 'i'),
-  },
-];
 
 const packageVersion = ((): string => {
   try {
@@ -141,12 +99,11 @@ function isIgnoredFile(relativePath: string, patterns: readonly RegExp[]): boole
 
 /** Rule metadata without the patterns, for documentation and SARIF consumers. */
 export function listSecretRules(): SecretRuleInfo[] {
-  return RULES.map(({ name, description, severity }) => ({ name, description, severity }));
+  return listInternalSecretRules().map(({ name, description, severity }) => ({ name, description, severity }));
 }
 
 export function createFindingFingerprint(rule: string, file: string, line: number): string {
-  if (!rule || !file || !Number.isInteger(line) || line < 1) throw new TypeError('fingerprint requires rule, file and a positive line number');
-  return createHash('sha256').update(`axiomguard:v1\0${rule}\0${normalizeRelative(file)}\0${line}`).digest('hex');
+  return createLegacySecretFingerprint(rule, file, line);
 }
 
 async function inspectFile(root: string, filePath: string, maxFileBytes: number, ignoredFiles: readonly RegExp[]): Promise<SecretFinding[]> {
@@ -159,20 +116,7 @@ async function inspectFile(root: string, filePath: string, maxFileBytes: number,
   const content = await readFile(filePath, 'utf8').catch(() => null);
   if (content === null || content.includes('\u0000')) return [];
 
-  const findings: SecretFinding[] = [];
-  const lines = content.split(/\r?\n/);
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index] ?? '';
-    if (line.length === 0) continue;
-    for (const rule of RULES) {
-      rule.pattern.lastIndex = 0;
-      if (rule.pattern.test(line)) {
-        const lineNumber = index + 1;
-        findings.push({ file: relativePath, line: lineNumber, rule: rule.name, fingerprint: createFindingFingerprint(rule.name, relativePath, lineNumber) });
-      }
-    }
-  }
-  return findings;
+  return inspectSecretText(relativePath, content);
 }
 
 async function collectFiles(current: string, ignoredDirectories: ReadonlySet<string>, files: string[]): Promise<void> {
@@ -263,7 +207,7 @@ export function findingsToSarif(findings: readonly SecretFinding[]): Record<stri
   const usedRules = [...new Set(findings.map((finding) => finding.rule))].sort();
   const ruleIndex = new Map(usedRules.map((name, index) => [name, index]));
   const rules = usedRules.map((ruleName) => {
-    const rule = RULES.find((candidate) => candidate.name === ruleName);
+    const rule = getInternalSecretRule(ruleName);
     return {
       id: ruleName,
       name: ruleName,
@@ -290,7 +234,7 @@ export function findingsToSarif(findings: readonly SecretFinding[]): Record<stri
       results: findings.map((finding) => ({
         ruleId: finding.rule,
         ruleIndex: ruleIndex.get(finding.rule) ?? 0,
-        level: RULES.find((candidate) => candidate.name === finding.rule)?.severity ?? 'warning',
+        level: getInternalSecretRule(finding.rule)?.severity ?? 'warning',
         message: { text: `Potential secret detected by ${finding.rule}. The matched value is intentionally not included.` },
         partialFingerprints: { 'axiomguard/v1': finding.fingerprint },
         locations: [{ physicalLocation: { artifactLocation: { uri: finding.file, uriBaseId: 'SRCROOT' }, region: { startLine: finding.line } } }],

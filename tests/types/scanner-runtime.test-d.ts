@@ -1,6 +1,8 @@
 // Compile-only generalized scanner assertions. Run via `npm run test:types`.
 import {
+  CORE_SECURITY_PACK_VERSION,
   SecurityPackRegistry,
+  createCoreSecurityPack,
   type NormalizedFinding,
   type RuleExecutionContext,
   type SecurityPack,
@@ -50,6 +52,8 @@ const pack: SecurityPack = {
 };
 
 const registry = new SecurityPackRegistry([pack]);
+const corePack: SecurityPack = createCoreSecurityPack();
+const coreVersion: '1.0.0' = CORE_SECURITY_PACK_VERSION;
 
 // @ts-expect-error detect is required by the SecurityRule contract.
 const ruleWithoutDetector: SecurityRule = {
@@ -79,4 +83,4 @@ context.root;
 // @ts-expect-error rule detectors must return normalized findings.
 const invalidRule: SecurityRule = { ...rule, detect: () => ['not-a-finding'] };
 
-void [scannerEntryRule, registry, ruleWithoutDetector, packWithoutVersion, invalidRule];
+void [scannerEntryRule, registry, corePack, coreVersion, ruleWithoutDetector, packWithoutVersion, invalidRule];

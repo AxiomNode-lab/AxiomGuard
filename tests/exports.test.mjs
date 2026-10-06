@@ -9,10 +9,11 @@ const require = createRequire(import.meta.url);
 // Every value export of the root module. Update deliberately when the public API changes;
 // an accidental removal or rename fails here before it reaches a release.
 const ROOT_EXPORTS = [
-  'MemoryIdempotencyStore', 'MemoryRateLimitStore', 'MemoryReplayStore', 'RepositoryScanContext', 'RequestPolicyError',
-  'SCAN_SCHEMA_VERSION', 'SafeFetchError', 'SafeUrlError', 'ScannerError', 'SecurityPackRegistry',
+  'CORE_SECURITY_PACK_VERSION', 'MemoryIdempotencyStore', 'MemoryRateLimitStore', 'MemoryReplayStore', 'RepositoryScanContext',
+  'RequestPolicyError', 'SCAN_SCHEMA_VERSION', 'SafeFetchError', 'SafeUrlError', 'ScannerError', 'SecurityPackRegistry',
   'applySecurityHeaders', 'assertRequestAllowed', 'assertSafeResolvedUrl', 'assertSafeUrl', 'buildContentSecurityPolicy',
   'checkRateLimit', 'claimIdempotencyKey', 'clearCookie', 'computeHmacSignature', 'constantTimeCompare', 'createApiKey',
+  'createCoreSecurityPack',
   'createCorsHeaders', 'createCorsPolicy', 'createCspNonce', 'createCsrfToken', 'createExpressSecurityMiddleware',
   'createFastifySecurityHook', 'createFetchSecurityHandler', 'createFindingFingerprint', 'createHonoSecurityMiddleware',
   'createIORedisIdempotencyStore', 'createIORedisRateLimitStore', 'createIORedisReplayStore', 'createIdempotencyFingerprint',
