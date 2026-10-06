@@ -15,6 +15,10 @@ Security and release-pipeline hardening release.
 - Confined GitHub Action `path`, `config`, and `baseline` inputs to `GITHUB_WORKSPACE` and added an out-of-workspace regression test.
 - Expanded outbound URL blocking for non-global IPv4 special-use addresses covered by the IANA registry.
 
+### Added
+
+- Synthetic scanner evaluation corpus covering every shipped secret rule with positive and negative cases.
+
 ### Changed
 
 - GitHub Packages stable publication now runs only for explicit releases or manual publication from the current `main` commit.
