@@ -7,7 +7,7 @@
 
   [![npm version](https://img.shields.io/npm/v/@axiomnode-lab/guard?logo=npm)](https://www.npmjs.com/package/@axiomnode-lab/guard)
   [![npm downloads](https://img.shields.io/npm/dm/@axiomnode-lab/guard?logo=npm)](https://www.npmjs.com/package/@axiomnode-lab/guard)
-  [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 </div>
 
@@ -40,6 +40,10 @@ pnpm add @axiomnode-lab/guard
 # or
 yarn add @axiomnode-lab/guard
 ```
+
+## New to AxiomGuard?
+
+Start with the [Beginner Guide](docs/BEGINNER_GUIDE.md). It walks through installation, the framework adapters, API keys, webhooks, CSRF, CORS, SSRF-aware fetches, idempotency, rate limiting, secure cookies, logging, the repository scanner, GitHub Actions, Docker usage, troubleshooting, and common mistakes.
 
 ## Quick start
 
