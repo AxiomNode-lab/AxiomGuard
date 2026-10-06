@@ -11,7 +11,7 @@ AxiomGuard is a security SDK, not a complete application security boundary. This
 | Redis stores | CI integration tests against Redis | Deployment topology and Redis availability are external concerns |
 | Package surface | Clean-room install, import/require checks, publint and type-shape checks | Registry-side publication is verified by release workflows |
 | GitHub Action | Repository action smoke tests, workspace/symlink boundary tests | GitHub-hosted runner behavior remains an external dependency |
-| Secret scanner | Regression suite, self-scan, SARIF validation | Rule-based scanning can have false positives and false negatives |
+| Secret scanner | Regression suite, synthetic positive/negative corpus, self-scan, SARIF validation | Rule-based scanning can have false positives and false negatives; corpus fixtures are synthetic and are not proof of provider-specific completeness |
 | SSRF-aware fetch | URL/DNS/redirect/body/timeout regression coverage | Does not eliminate DNS rebinding/TOCTOU; use network egress controls for high-risk workloads |
 | Release pipeline | Pinned actions, provenance/version checks, workflow-security regression checks | A third-party security audit has not been completed |
 
@@ -43,6 +43,6 @@ Before publishing 0.7.2, the release candidate should have:
 3. clean-room package qualification;
 4. framework and Redis integration success;
 5. container and GitHub Action smoke-test success;
-6. a documented scanner evaluation corpus and known limitations;
+6. a documented scanner evaluation corpus covering every shipped rule with synthetic positives and representative negative cases, plus known limitations;
 7. reproducible release provenance and registry read-back verification.
 
