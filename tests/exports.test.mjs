@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 // an accidental removal or rename fails here before it reaches a release.
 const ROOT_EXPORTS = [
   'MemoryIdempotencyStore', 'MemoryRateLimitStore', 'MemoryReplayStore', 'RequestPolicyError', 'SafeFetchError', 'SafeUrlError',
+  'SCAN_SCHEMA_VERSION',
   'applySecurityHeaders', 'assertRequestAllowed', 'assertSafeResolvedUrl', 'assertSafeUrl', 'buildContentSecurityPolicy',
   'checkRateLimit', 'claimIdempotencyKey', 'clearCookie', 'computeHmacSignature', 'constantTimeCompare', 'createApiKey',
   'createCorsHeaders', 'createCorsPolicy', 'createCspNonce', 'createCsrfToken', 'createExpressSecurityMiddleware',

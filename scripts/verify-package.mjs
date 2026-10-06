@@ -9,7 +9,8 @@ const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), '
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 function run(command, args, cwd = root) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', env: process.env, shell: process.platform === 'win32' });
+  const shellArgs = process.platform === 'win32' ? args.map((argument) => `"${argument.replaceAll('"', '""')}"`) : args;
+  const result = spawnSync(command, shellArgs, { cwd, encoding: 'utf8', env: process.env, shell: process.platform === 'win32' });
   if (result.status !== 0) {
     process.stderr.write(result.stdout ?? '');
     process.stderr.write(result.stderr ?? '');
@@ -38,6 +39,7 @@ const requiredPublicFiles = [
   'docs/GITHUB_ACTION.md',
   'docs/SAFE_FETCH.md',
   'docs/SCANNER.md',
+  'docs/SCANNER_ARCHITECTURE.md',
   'docs/axiomguard-demo.svg',
 ];
 for (const file of requiredPublicFiles) {

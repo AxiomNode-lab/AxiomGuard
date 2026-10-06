@@ -3,6 +3,22 @@ import { lstat, readdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
+export {
+  SCAN_SCHEMA_VERSION,
+  type FindingConfidence,
+  type FindingEvidence,
+  type JsonPrimitive,
+  type JsonValue,
+  type NormalizedFinding,
+  type ScanContext,
+  type ScanResult,
+  type ScanSchemaVersion,
+  type ScanVersionMetadata,
+  type SecurityRuleMetadata,
+  type SecuritySeverity,
+  type SourceLocation,
+} from './scanner/contracts.js';
+
 export type SecretSeverity = 'error' | 'warning';
 
 export interface SecretFinding {
