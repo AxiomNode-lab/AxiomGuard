@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.8.0-beta.1",
+  "version": "0.8.0-beta.2",
   "description": "Zero-runtime-dependency security SDK for Node.js: webhooks (GitHub, Stripe, Slack, Meta, Standard Webhooks), request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, secret scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -127,7 +127,12 @@
       "import": "./dist/adapters/redis.js",
       "default": "./dist/adapters/redis.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./agent": {
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js",
+      "default": "./dist/agent.js"
+    }
   },
   "bin": {
     "axiomguard": "dist/cli.js"
@@ -148,7 +153,8 @@
     "docs/SAFE_FETCH.md",
     "docs/SCANNER.md",
     "docs/SECURITY_ASSURANCE.md",
-    "docs/axiomguard-demo.svg"
+    "docs/axiomguard-demo.svg",
+    "docs/AI_CI_CD.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -199,7 +205,10 @@
     "standard-webhooks",
     "svix",
     "helmet",
-    "idempotency-key"
+    "idempotency-key",
+    "ai-agents",
+    "ci-cd",
+    "security-automation"
   ],
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
