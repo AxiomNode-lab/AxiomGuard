@@ -1,13 +1,18 @@
 # Upgrading
 
-## 0.7.1 → 0.7.2
+## 0.7.1 → 0.8.0-beta.1
 
-### Changed
+### Breaking
 
-The 0.7.2 release candidate hardens the publication pipeline and runtime input validation. The 0.7.2 package is not published yet; these notes describe the release candidate. No application migration is required for normal API usage. Applications that passed non-standard runtime values to cookie `sameSite`, `priority`, `secure`, `httpOnly`, CSP report-only, Origin-Agent-Cluster, XSS-protection or HSTS boolean options must now pass the documented types.
+The 0.8.0 beta is a prerelease. It raises the supported Node.js baseline from 20 to 22 because Node.js 20 is end-of-life. Node.js 22, 24 and 26 are qualified in CI.
 
-AxiomGuard is pre-1.0: minor releases may change security defaults or tighten
-behaviour. Every such change is listed here with the migration.
+The beta also includes the unreleased 0.7.2 security and release-pipeline hardening work. No application migration is required for the normal security APIs beyond the stricter runtime validation already described below.
+
+### Beta channel
+
+The beta is intentionally separate from the stable channel. After publication, install it explicitly with `npm install @axiomnode-lab/guard@beta` or an exact prerelease version. Do not treat the beta channel as the stable `latest` channel.
+
+AxiomGuard is pre-1.0: prereleases may change security defaults, APIs or supported runtimes before stable. Every such change is listed here with the migration.
 
 ## 0.7.0 → 0.7.1
 
