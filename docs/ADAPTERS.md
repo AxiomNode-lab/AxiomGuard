@@ -21,7 +21,7 @@ const security = {
 
 `requestPolicy` is opt-in. It is intended for browser-facing routes. Machine-to-machine endpoints that legitimately omit `Origin` should use a separate adapter policy or explicitly select `allowNoOrigin: true` for that route boundary.
 
-The default blocked response is `403`; `requestPolicyStatus` can select another 4xx response. See [API_PROTECTION.md](API_PROTECTION.md).
+The default blocked response is `403`; `requestPolicyStatus` can select another 4xx response. See [API_PROTECTION.md](../API_PROTECTION.md).
 
 ## Express
 
