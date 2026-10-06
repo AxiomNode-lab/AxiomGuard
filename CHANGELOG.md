@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.7.2] - 2026-09-28
+## [0.7.2] - Unreleased
 
-Security and release-pipeline hardening release.
+Security and release-pipeline hardening planned for 0.7.2. The GitHub Release and registry publication are not created yet.
 
 ### Security
 
