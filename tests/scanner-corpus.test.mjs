@@ -42,7 +42,7 @@ test('scanner rule corpus covers every documented secret rule with synthetic pos
     const documentedRules = listSecretRules().map((rule) => rule.name).sort();
     assert.deepEqual(corpusRules, documentedRules, 'every scanner rule must have an evaluation sample');
 
-    const content = corpus.map(([rule, value]) => rule === 'sensitive-env-value' ? value : 'case=' + rule + ':' + value).join('\n') + '\n';
+    const content = `${corpus.map(([rule, value]) => rule === 'sensitive-env-value' ? value : `case=${rule}:${value}`).join('\n')}\n`;
     await writeFile(path.join(directory, 'corpus.txt'), content, 'utf8');
 
     const findings = await scanSecrets(directory, { concurrency: 1 });
@@ -64,7 +64,7 @@ test('scanner corpus keeps common placeholders and public examples clean', async
       join('xoxb-', 'short-example'),
       join('google=', 'AIza', repeat('x', 10)),
     ];
-    await writeFile(path.join(directory, 'negatives.txt'), lines.join('\n') + '\n', 'utf8');
+    await writeFile(path.join(directory, 'negatives.txt'), `${lines.join('\n')}\n`, 'utf8');
     assert.deepEqual(await scanSecrets(directory), []);
   } finally {
     await rm(directory, { recursive: true, force: true });
