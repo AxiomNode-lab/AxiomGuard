@@ -31,7 +31,7 @@ test('published release metadata guard rejects Unreleased and accepts a dated en
     );
 
     const datedChangelog = changelogSource.replace(
-      /^## \[(\d+\.\d+\.\d+)\] - Unreleased$/m,
+      /^## \[(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\] - Unreleased$/m,
       '## [$1] - 2000-01-01',
     );
     await writeFile(changelogTarget, datedChangelog, 'utf8');
