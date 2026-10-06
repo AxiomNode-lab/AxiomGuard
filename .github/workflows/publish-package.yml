@@ -22,15 +22,13 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
           MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
           if [ "$EVENT_NAME" = "release" ]; then
-            case "$RELEASE_TAG" in
-              v[0-9]*.[0-9]*.[0-9]*) ;;
-              *) echo "::error::Release tag must use vMAJOR.MINOR.PATCH; got $RELEASE_TAG"; exit 1 ;;
-            esac
+            node scripts/check-release-tag.mjs
             RELEASE_SHA="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
             if [ "$RELEASE_SHA" != "$MAIN_SHA" ]; then
               echo "::error::Release tag $RELEASE_TAG must point to the current main commit $MAIN_SHA; got $RELEASE_SHA."
@@ -73,7 +71,9 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
+          DIST_TAG="$(node -p "require('./package.json').version.includes('-') ? 'beta' : 'latest'")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "dist-tag=${DIST_TAG}" >> "$GITHUB_OUTPUT"
           set +e
           npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com >/tmp/axiomguard-view.out 2>/tmp/axiomguard-view.err
           STATUS=$?
@@ -96,7 +96,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          npm publish --ignore-scripts 2>&1 | tee /tmp/axiomguard-publish.log
+          npm publish --ignore-scripts --tag "$DIST_TAG" 2>&1 | tee /tmp/axiomguard-publish.log
           STATUS=${PIPESTATUS[0]}
           set -e
           if [ "$STATUS" -ne 0 ]; then
