@@ -1,5 +1,35 @@
 # Upgrading
 
+## 0.8.0-beta.1 → 0.8.0-beta.2
+
+### Added
+
+The beta now includes a model-agnostic CI/AI integration surface:
+
+- `@axiomnode-lab/guard/agent` exposes `scanForAgent()` and `createAgentSecurityReport()`.
+- `axiomguard ci` emits a stable `ci-agent` JSON report.
+- `--format agent` and `--agent-output` support CI orchestrators and AI coding agents without exposing matched values.
+- The GitHub Action exposes an `agent-report` output alongside SARIF.
+- The package can be installed with npm, pnpm, Yarn or Bun and run one-off with npx, `pnpm dlx`, `yarn dlx`, `bunx` or `npm exec`.
+
+### Migration
+
+No migration is required for existing scanner users. Existing `scan`, JSON, SARIF and GitHub Action behavior remains supported.
+
+For AI-assisted CI/CD, prefer:
+
+```bash
+axiomguard ci . --no-fail --output axiomguard-agent.json
+```
+
+or the library API:
+
+```ts
+import { scanForAgent } from '@axiomnode-lab/guard/agent';
+
+const report = await scanForAgent('.');
+```
+
 ## 0.7.1 → 0.8.0-beta.1
 
 ### Breaking

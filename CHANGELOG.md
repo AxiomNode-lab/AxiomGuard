@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0-beta.2] - Unreleased
+
+AI/CI integration and distribution usability update for the 0.8.0 beta line.
+
+### Added
+
+- Added `@axiomnode-lab/guard/agent` with a deterministic, AI-safe security report API for CI/CD orchestration.
+- Added `axiomguard ci` and `--format agent` for stable machine-readable reports with severity, remediation guidance and release-gating state.
+- Added `--agent-output` so CI integrations can emit an AI-safe report alongside SARIF.
+- GitHub Action now exposes an `agent-report` output for downstream automation and AI review steps.
+- Documented npm, pnpm, Yarn, Bun, npx, pnpm dlx, yarn dlx, bunx and npm exec usage.
+
+### Security
+
+- Agent reports contain file, line, rule, severity, fingerprint, description and remediation metadata only; matched credential values are never included.
+
+### Changed
+
+- Published package metadata now includes the agent subpath and AI/CI documentation.
+- Synced the lockfile Node.js engine metadata with the Node.js 22+ runtime baseline.
+
 ## [0.8.0-beta.1] - 2026-10-07
 
 Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the prior release-candidate cycle. The GitHub Release and registry publication are not created yet.

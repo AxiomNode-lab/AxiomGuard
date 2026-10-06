@@ -39,6 +39,7 @@ const requiredPublicFiles = [
   'docs/GITHUB_ACTION.md',
   'docs/SAFE_FETCH.md',
   'docs/SCANNER.md',
+  'docs/AI_CI_CD.md',
   'docs/axiomguard-demo.svg',
 ];
 for (const file of requiredPublicFiles) {
@@ -71,6 +72,7 @@ const root = await import('@axiomnode-lab/guard');
 if (typeof root.secureToken !== 'function' || typeof root.safeFetch !== 'function') throw new Error('root export is incomplete');
 if (typeof root.evaluateRequestPolicy !== 'function' || typeof root.claimIdempotencyKey !== 'function') throw new Error('API protection exports are incomplete');
 if (typeof root.verifyMetaWebhook !== 'function' || typeof root.verifyStandardWebhook !== 'function') throw new Error('provider webhook exports are incomplete');
+if (typeof root.createAgentSecurityReport !== 'function' || typeof root.scanForAgent !== 'function') throw new Error('agent exports are incomplete');
 if (typeof require('@axiomnode-lab/guard').safeFetch !== 'function') throw new Error('require() of the root export failed');
 if (require('@axiomnode-lab/guard/package.json').version !== ${JSON.stringify(packageJson.version)}) throw new Error('package.json export mismatch');
 for (const subpath of subpaths) {
@@ -87,6 +89,7 @@ import { claimIdempotencyKey, evaluateRequestPolicy, requireEnv, secureToken, sa
 import { MemoryIdempotencyStore } from '@axiomnode-lab/guard/idempotency';
 import { verifyGitHubWebhookDelivery } from '@axiomnode-lab/guard/webhooks';
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
+import { createAgentSecurityReport, scanForAgent } from '@axiomnode-lab/guard/agent';
 const token: string = secureToken();
 const store = new MemoryIdempotencyStore();
 const env = requireEnv({ PORT: { type: 'port', default: 3000 } }, {});
@@ -99,6 +102,8 @@ void claimIdempotencyKey;
 void evaluateRequestPolicy;
 void verifyMetaWebhook;
 void verifyGitHubWebhookDelivery;
+void createAgentSecurityReport;
+void scanForAgent;
 void createFetchSecurityHandler;
 `;
   await writeFile(path.join(workspace, 'consumer.ts'), typeConsumer, 'utf8');

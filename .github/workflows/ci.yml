@@ -191,3 +191,17 @@ jobs:
         env:
           SARIF_FILE: ${{ steps.axiomguard.outputs.sarif }}
         run: node -e "const fs=require('node:fs'); const x=JSON.parse(fs.readFileSync(process.env.SARIF_FILE,'utf8')); if(x.version!=='2.1.0'||!Array.isArray(x.runs)) process.exit(1)"
+      - name: Validate AI/CI report output
+        env:
+          AGENT_REPORT: ${{ steps.axiomguard.outputs.agent-report }}
+        run: |
+          set -euo pipefail
+          test -f "$AGENT_REPORT"
+          node - "$AGENT_REPORT" <<'NODE'
+          const fs = require('node:fs');
+          const [file] = process.argv.slice(2);
+          const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (report.schemaVersion !== '1' || report.mode !== 'ci-agent') process.exit(1);
+          if (!report.ok || report.status !== 'pass' || report.exitCode !== 0) process.exit(1);
+          if (!Array.isArray(report.findings) || !report.summary) process.exit(1);
+          NODE

@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const ROOT_EXPORTS = [
   'MemoryIdempotencyStore', 'MemoryRateLimitStore', 'MemoryReplayStore', 'RequestPolicyError', 'SafeFetchError', 'SafeUrlError',
   'applySecurityHeaders', 'assertRequestAllowed', 'assertSafeResolvedUrl', 'assertSafeUrl', 'buildContentSecurityPolicy',
-  'checkRateLimit', 'claimIdempotencyKey', 'clearCookie', 'computeHmacSignature', 'constantTimeCompare', 'createApiKey',
+  'checkRateLimit', 'claimIdempotencyKey', 'clearCookie', 'computeHmacSignature', 'constantTimeCompare', 'createAgentSecurityReport', 'createApiKey',
   'createCorsHeaders', 'createCorsPolicy', 'createCspNonce', 'createCsrfToken', 'createExpressSecurityMiddleware',
   'createFastifySecurityHook', 'createFetchSecurityHandler', 'createFindingFingerprint', 'createHonoSecurityMiddleware',
   'createIORedisIdempotencyStore', 'createIORedisRateLimitStore', 'createIORedisReplayStore', 'createIdempotencyFingerprint',
@@ -21,7 +21,7 @@ const ROOT_EXPORTS = [
   'decodeDigest', 'evaluateRequestPolicy', 'findingsToSarif', 'getClientIp', 'getSecurityHeaderPreset', 'hashApiKey',
   'isPrivateIPAddress', 'listSecretRules', 'maskApiKey', 'maskPII', 'normalizeHostname', 'normalizeIdempotencyKey', 'parseApiKey',
   'parseCookies', 'parseSecretScanBaseline', 'parseSecretScannerConfig', 'rateLimitBucketForIp', 'redactSecrets', 'requireEnv',
-  'safeFetch', 'safePath', 'sanitizeFilename', 'scanSecrets', 'secureToken', 'serializeCookie', 'signHmacWebhook',
+  'safeFetch', 'safePath', 'sanitizeFilename', 'scanForAgent', 'scanSecrets', 'secureToken', 'serializeCookie', 'signHmacWebhook',
   'validateEnv', 'validateRedirect', 'verifyApiKey', 'verifyCsrfToken', 'verifyFreshHmacWebhook', 'verifyGitHubWebhook',
   'verifyGitHubWebhookDelivery', 'verifyHmacWebhook', 'verifyMetaWebhook', 'verifySlackWebhook', 'verifyStandardWebhook',
   'verifyStripeWebhook',
