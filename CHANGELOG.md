@@ -2,7 +2,7 @@
 
 ## [0.7.2] - Unreleased
 
-Security and release-pipeline hardening planned for 0.7.2. The GitHub Release and registry publication are not created yet.
+Security and release-pipeline hardening completed for the 0.7.2 release candidate. The GitHub Release and registry publication are not created yet.
 
 ### Security
 
