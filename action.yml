@@ -63,6 +63,10 @@ runs:
         const [rootArg, input] = process.argv.slice(2);
         const root = path.resolve(rootArg);
         const candidate = path.resolve(root, input);
+        if (path.isAbsolute(input)) {
+          process.stderr.write('AxiomGuard action paths must be workspace-relative.\n');
+          process.exit(2);
+        }
         if (candidate !== root && !candidate.startsWith(root + path.sep)) {
           process.stderr.write('AxiomGuard action paths must stay inside GITHUB_WORKSPACE.\n');
           process.exit(2);

@@ -161,6 +161,13 @@ jobs:
         with:
           path: '../'
           fail-on-findings: 'true'
+      - name: Reject absolute paths inside the workspace
+        id: invalid-absolute-action-path
+        continue-on-error: true
+        uses: ./
+        with:
+          path: ${{ github.workspace }}
+          fail-on-findings: 'true'
       - name: Create symlink pointing outside the workspace
         shell: bash
         run: |
@@ -177,9 +184,11 @@ jobs:
       - name: Validate action path boundaries
         env:
           INVALID_PATH_OUTCOME: ${{ steps.invalid-action-path.outcome }}
+          INVALID_ABSOLUTE_ACTION_PATH_OUTCOME: ${{ steps.invalid-absolute-action-path.outcome }}
           INVALID_SYMLINK_OUTCOME: ${{ steps.invalid-symlink-config.outcome }}
         run: |
           test "$INVALID_PATH_OUTCOME" = failure
+          test "$INVALID_ABSOLUTE_ACTION_PATH_OUTCOME" = failure
           test "$INVALID_SYMLINK_OUTCOME" = failure
       - name: Validate SARIF output
         env:
