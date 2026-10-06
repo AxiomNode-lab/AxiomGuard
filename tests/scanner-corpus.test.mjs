@@ -23,7 +23,7 @@ function positiveCorpus() {
     ['npm-token', join('npm_', repeat('A', 36))],
     ['sendgrid-api-key', join('SG.', repeat('A', 22), '.', repeat('A', 43))],
     ['huggingface-token', join('hf_', repeat('A', 34))],
-    ['digitalocean-token', join('doop_v1_', repeat('a', 64))],
+    ['digitalocean-token', join('dop_v1_', repeat('a', 64))],
     ['shopify-token', join('shpat_', repeat('a', 32))],
     ['pypi-token', join('pypi-AgEIcHlwaS5vcmc', repeat('A', 52))],
     ['vault-token', join('hvs.', repeat('A', 24))],
