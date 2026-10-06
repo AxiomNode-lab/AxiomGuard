@@ -4,7 +4,7 @@
 
 ### Changed
 
-This patch release hardens the publication pipeline and runtime input validation. No application migration is required for normal API usage. Applications that passed non-standard runtime values to cookie `sameSite`, `priority`, `secure`, `httpOnly`, CSP report-only, Origin-Agent-Cluster, XSS-protection or HSTS boolean options must now pass the documented types.
+The planned 0.7.2 patch hardens the publication pipeline and runtime input validation. The 0.7.2 package is not published yet; these notes describe the release candidate. No application migration is required for normal API usage. Applications that passed non-standard runtime values to cookie `sameSite`, `priority`, `secure`, `httpOnly`, CSP report-only, Origin-Agent-Cluster, XSS-protection or HSTS boolean options must now pass the documented types.
 
 AxiomGuard is pre-1.0: minor releases may change security defaults or tighten
 behaviour. Every such change is listed here with the migration.
