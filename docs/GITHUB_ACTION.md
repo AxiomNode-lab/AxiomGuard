@@ -2,7 +2,7 @@
 
 The repository can be used directly as a composite GitHub Action. It scans the checked-out workspace and writes SARIF 2.1.0 without including matched credential values.
 
-> **Pinning:** use an existing release tag or an immutable commit SHA in production. Until the current version is released, the example below uses `@main` for evaluation only; production consumers should pin an existing release tag or immutable commit SHA. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
+> **Pinning:** use an existing release tag or an immutable commit SHA in production. The example below uses the currently published `v0.7.1` release. For unreleased changes, pin the exact commit you have reviewed rather than using a moving branch. The composite action builds the scanner from source with `npm ci` on every run, so the runner needs Node.js on `PATH` and network access to npm.
 
 ```yaml
 name: AxiomGuard
@@ -19,16 +19,16 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: axiomguard
-        uses: AxiomNode-lab/AxiomGuard@main
+        uses: AxiomNode-lab/AxiomGuard@v0.7.1
         with:
           path: .
           fail-on-findings: 'true'
           annotations: 'true'
       - name: Upload SARIF
         if: always() && steps.axiomguard.outputs.sarif != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
         with:
           sarif_file: ${{ steps.axiomguard.outputs.sarif }}
           category: axiomguard-secrets
@@ -61,7 +61,7 @@ For an existing repository with known findings, start in audit mode rather than 
 
 ```yaml
 - id: axiomguard
-  uses: AxiomNode-lab/AxiomGuard@main
+  uses: AxiomNode-lab/AxiomGuard@v0.7.1
   with:
     path: .
     fail-on-findings: 'false'
@@ -72,8 +72,8 @@ Review the results, create a baseline only for accepted existing findings, commi
 
 ## Running the container instead
 
-The published image scans a mounted workspace without Node.js on the runner. Until a current semver release is published, use the moving `edge` image for evaluation only; production consumers should pin an existing release tag or digest:
+The published image scans a mounted workspace without Node.js on the runner. The example below uses the published `0.7.1` image; production consumers can pin the same tag or an immutable digest:
 
 ```bash
-docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:edge scan /workspace --sarif --output /tmp/axiomguard.sarif
+docker run --rm -v "$PWD:/workspace:ro" ghcr.io/axiomnode-lab/axiomguard:0.7.1 scan /workspace --sarif --output /tmp/axiomguard.sarif
 ```
