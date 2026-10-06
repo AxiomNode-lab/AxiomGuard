@@ -94,6 +94,7 @@ jobs:
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
         run: |
           set +e
           npm publish --ignore-scripts --tag "$DIST_TAG" 2>&1 | tee /tmp/axiomguard-publish.log
