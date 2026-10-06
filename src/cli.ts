@@ -13,8 +13,9 @@ import {
   type SecretFinding,
   type SecretScannerConfig,
 } from './scanner.js';
+import { createAgentSecurityReport } from './agent.js';
 
-type Format = 'text' | 'json' | 'sarif';
+type Format = 'text' | 'json' | 'sarif' | 'agent';
 
 interface CliOptions {
   target: string;
@@ -28,6 +29,7 @@ interface CliOptions {
   noFail: boolean;
   quiet: boolean;
   githubAnnotations: boolean;
+  agentOutput?: string | undefined;
 }
 
 const VERSION = ((): string => {
@@ -43,12 +45,14 @@ function usage(): string {
 
 Usage:
   axiomguard scan [path] [options]
+  axiomguard ci [path] [options]
   axiomguard rules
   axiomguard --version
 
 Scan options:
-  --format <text|json|sarif>   Output format (default: text). --json and --sarif are shorthands.
+  --format <text|json|sarif|agent> Output format (default: text). --json and --sarif are shorthands; agent is AI/CI-safe JSON.
   --output <file>              Write the report to a file instead of stdout.
+  --agent-output <file>        Also write an AI/CI-safe JSON report.
   --config <file>              Scanner config (default: .axiomguard.json in the scan root when present).
   --baseline <file>            Baseline of accepted fingerprints (default: .axiomguard-baseline.json in the scan root).
   --write-baseline <file>      Write all current findings as a baseline (relative to the scan root) and exit 0.
@@ -56,6 +60,7 @@ Scan options:
   --max-file-bytes <n>         Skip files larger than n bytes (default: 1000000).
   --github-annotations         Emit GitHub workflow annotations on stderr for new findings.
   --no-fail                    Exit 0 even when new findings exist.
+  --ai                         Alias for --format agent.
   --quiet                      Suppress the report; exit code still reflects findings.
 
 Exit codes: 0 no new findings, 1 new findings, 2 usage or runtime error.
@@ -76,6 +81,7 @@ function parseScanArgs(args: string[]): CliOptions {
   let noFail = false;
   let quiet = false;
   let githubAnnotations = false;
+  let agentOutput: string | undefined;
 
   const takeValue = (name: string, index: number): [string, number] => {
     const next = args[index + 1];
@@ -91,12 +97,14 @@ function parseScanArgs(args: string[]): CliOptions {
     const arg = args[index]!;
     if (arg === '--json') setFormat('json');
     else if (arg === '--sarif') setFormat('sarif');
+    else if (arg === '--ai') setFormat('agent');
     else if (arg === '--format') {
       let value: string;
       [value, index] = takeValue('--format', index);
-      if (value !== 'text' && value !== 'json' && value !== 'sarif') throw new Error('--format must be text, json or sarif');
+      if (value !== 'text' && value !== 'json' && value !== 'sarif' && value !== 'agent') throw new Error('--format must be text, json, sarif or agent');
       setFormat(value);
     } else if (arg === '--output') [output, index] = takeValue('--output', index);
+    else if (arg === '--agent-output') [agentOutput, index] = takeValue('--agent-output', index);
     else if (arg === '--config') [config, index] = takeValue('--config', index);
     else if (arg === '--baseline') [baseline, index] = takeValue('--baseline', index);
     else if (arg === '--write-baseline') [writeBaseline, index] = takeValue('--write-baseline', index);
@@ -119,7 +127,7 @@ function parseScanArgs(args: string[]): CliOptions {
     } else throw new Error(`unexpected argument: ${arg}`);
   }
 
-  return { target, format: format ?? 'text', output, config, baseline, writeBaseline, exclude, maxFileBytes, noFail, quiet, githubAnnotations };
+  return { target, format: format ?? 'text', output, config, baseline, writeBaseline, exclude, maxFileBytes, noFail, quiet, githubAnnotations, agentOutput };
 }
 
 async function readJsonIfPresent(filePath: string, required = false): Promise<unknown | undefined> {
@@ -203,14 +211,22 @@ async function runScan(args: string[]): Promise<number> {
   const findings = await scanSecrets(resolvedTarget, { ...scanOptions, baselineFingerprints });
   if (options.githubAnnotations) emitGitHubAnnotations(findings, options.noFail ? 'warning' : 'error');
 
+  const agentReport = options.format === 'agent' || options.agentOutput
+    ? createAgentSecurityReport(findings, options.target)
+    : undefined;
   const rendered = options.format === 'json'
     ? `${JSON.stringify({ ok: findings.length === 0, findings }, null, 2)}\n`
     : options.format === 'sarif'
       ? `${JSON.stringify(findingsToSarif(findings), null, 2)}\n`
-      : renderText(findings);
+      : options.format === 'agent'
+        ? `${JSON.stringify(agentReport, null, 2)}\n`
+        : renderText(findings);
 
   if (options.output) await writeFile(options.output, rendered, 'utf8');
   else if (!options.quiet) process.stdout.write(rendered);
+  if (agentReport && options.agentOutput) {
+    await writeFile(options.agentOutput, `${JSON.stringify(agentReport, null, 2)}\n`, 'utf8');
+  }
 
   return findings.length > 0 && !options.noFail ? 1 : 0;
 }
@@ -228,6 +244,11 @@ async function main(): Promise<number> {
   if (args[0] === 'rules') {
     process.stdout.write(renderRules());
     return 0;
+  }
+  if (args[0] === 'ci') {
+    const ciArgs = args.slice(1);
+    if (!ciArgs.some((arg) => arg === '--format' || arg === '--json' || arg === '--sarif' || arg === '--ai')) ciArgs.push('--format', 'agent');
+    return runScan(['scan', ...ciArgs]);
   }
   if (args[0] !== 'scan') {
     process.stderr.write(usage());
