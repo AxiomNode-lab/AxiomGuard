@@ -25,7 +25,7 @@ test('published release metadata guard rejects Unreleased and accepts a dated en
       execFileAsync(process.execPath, [join(tempDir, 'scripts/check-published-release.mjs')], {
         cwd: tempDir,
       }),
-      /CHANGELOG\.md entry.*YYYY-MM-DD/,
+      (error) => error?.stderr?.includes('CHANGELOG.md entry') && error.stderr.includes('YYYY-MM-DD'),
     );
 
     const datedChangelog = changelogSource.replace(
