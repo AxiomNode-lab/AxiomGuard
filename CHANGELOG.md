@@ -24,6 +24,7 @@ Security and release-pipeline hardening completed for the 0.7.2 release candidat
 - GitHub Packages stable publication now runs only for explicit releases or manual publication from the current `main` commit.
 - Added a CI regression check for unsafe GitHub Actions workflow patterns.
 - Tightened public runtime compatibility wording and removed stale pre-release tag references from examples.
+- Production container base updated to the pinned Node 24.21.0 LTS Alpine image.
 
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
