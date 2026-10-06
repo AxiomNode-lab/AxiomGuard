@@ -42,6 +42,7 @@ test('cli reports version, usage and rules', () => {
   assert.equal(rules.stdout.trim().split('\n').length, listSecretRules().length);
   assert.equal(run(['bogus']).code, 2);
   assert.equal(run(['scan', '--nope']).code, 2);
+  assert.equal(run(['scan', '--format', 'agent', '--json']).code, 2);
 });
 
 test('cli scan exit codes, stream discipline and format flags', async () => {
@@ -68,6 +69,30 @@ test('cli scan exit codes, stream discipline and format flags', async () => {
     assert.equal(soft.code, 0);
     assert.equal(soft.stdout, '');
     assert.match(soft.stderr, /^::warning /m);
+
+    const agent = run(['scan', dir, '--format', 'agent']);
+    assert.equal(agent.code, 1);
+    const agentReport = JSON.parse(agent.stdout);
+    assert.equal(agentReport.schemaVersion, '1');
+    assert.equal(agentReport.mode, 'ci-agent');
+    assert.equal(agentReport.ok, false);
+    assert.equal(agentReport.exitCode, 1);
+    assert.equal(agentReport.summary.findings, 3);
+    assert.equal(agentReport.summary.errors, 2);
+    assert.equal(agentReport.summary.warnings, 1);
+    assert.equal(agentReport.findings[0].remediation.length > 0, true);
+    assert.doesNotMatch(agent.stdout, new RegExp(AWS_KEY), 'agent reports never contain matched values');
+
+    const ci = run(['ci', dir]);
+    assert.equal(ci.code, 1);
+    const ciReport = JSON.parse(ci.stdout);
+    assert.equal(ciReport.mode, 'ci-agent');
+    assert.equal(ciReport.summary.findings, 3);
+
+    const agentOutput = path.join(dir, 'agent-report.json');
+    const sarifWithAgent = run(['scan', dir, '--sarif', '--output', path.join(dir, 'report.sarif'), '--agent-output', agentOutput]);
+    assert.equal(sarifWithAgent.code, 1);
+    assert.equal(JSON.parse(await readFile(agentOutput, 'utf8')).mode, 'ci-agent');
 
     const sarif = run(['scan', dir, '--format', 'sarif']);
     const doc = JSON.parse(sarif.stdout);
