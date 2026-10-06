@@ -164,6 +164,7 @@ See [Framework adapters](docs/ADAPTERS.md) for adapter options and Redis-backed 
 | Keep uploads inside a directory | `@axiomnode-lab/guard/filesystem` | `safePath`, `sanitizeFilename` |
 | Redact secrets and PII | `@axiomnode-lab/guard/logging` | `redactSecrets`, `maskPII` |
 | Scan a repository for secrets | `@axiomnode-lab/guard/scanner` | `scanSecrets`, CLI `axiomguard scan` |
+| Integrate with CI/CD and AI agents | `@axiomnode-lab/guard/agent` | `scanForAgent`, `createAgentSecurityReport`, CLI `axiomguard ci` |
 
 ## Common recipes
 
