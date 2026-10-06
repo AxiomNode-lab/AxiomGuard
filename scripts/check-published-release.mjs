@@ -15,7 +15,7 @@ if (lockRootVersion !== version) failures.push(`package-lock.json root package v
 if (headings[0]?.[1] !== version) failures.push(`CHANGELOG.md first version entry is ${headings[0]?.[1] ?? 'missing'}, expected ${version}`);
 
 const versionDate = headings.find((heading) => heading[1] === version)?.[2];
-if (!versionDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(versionDate)) {
+if (!versionDate || !/^\d{4}-\d{2}-\d{2}$/.test(versionDate)) {
   failures.push(`CHANGELOG.md entry for ${version} must use a YYYY-MM-DD release date before publication`);
 }
 
