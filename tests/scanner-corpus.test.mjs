@@ -42,7 +42,7 @@ test('scanner rule corpus covers every documented secret rule with synthetic pos
     const documentedRules = listSecretRules().map((rule) => rule.name).sort();
     assert.deepEqual(corpusRules, documentedRules, 'every scanner rule must have an evaluation sample');
 
-    const content = corpus.map(([rule, value]) => 'case=' + rule + ':' + value).join('\n') + '\n';
+    const content = corpus.map(([rule, value]) => rule === 'sensitive-env-value' ? value : 'case=' + rule + ':' + value).join('\n') + '\n';
     await writeFile(path.join(directory, 'corpus.txt'), content, 'utf8');
 
     const findings = await scanSecrets(directory, { concurrency: 1 });
