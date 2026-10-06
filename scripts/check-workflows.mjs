@@ -90,6 +90,10 @@ if (packagePublishWorkflow) {
   if (!packagePublishWorkflow.includes('dist-tags.${DIST_TAG}')) {
     violations.push('publish-package.yml must verify the computed dist-tag points to the published version');
   }
+  const packageVerifyStep = packagePublishWorkflow.match(/- name: Verify package version in GitHub Packages[\\s\\S]*?(?=\\n      - name:|\\s*$)/)?.[0] ?? '';
+  if (!packageVerifyStep.includes('DIST_TAG: ${{ steps.version.outputs.dist-tag }}')) {
+    violations.push('publish-package.yml verification step must receive the computed dist-tag');
+  }
   if (!packagePublishWorkflow.includes('scripts/check-release-tag.mjs')) {
     violations.push('publish-package.yml must validate release tag prerelease metadata');
   }
