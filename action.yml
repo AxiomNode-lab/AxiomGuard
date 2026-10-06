@@ -26,6 +26,10 @@ inputs:
     description: Emit GitHub workflow warning annotations for new findings without exposing matched values.
     required: false
     default: 'true'
+  agent-report:
+    description: Generate an AI/CI-safe JSON report with finding metadata and remediation guidance.
+    required: false
+    default: 'true'
 
 outputs:
   sarif:
@@ -34,6 +38,9 @@ outputs:
   exit-code:
     description: AxiomGuard scanner exit code (0 clean, 1 new findings unless fail-on-findings is false, 2 error).
     value: ${{ steps.scan.outputs.exit-code }}
+  agent-report:
+    description: Absolute path to the generated AI/CI-safe JSON report.
+    value: ${{ steps.scan.outputs.agent-report }}
 
 runs:
   using: composite
@@ -54,6 +61,7 @@ runs:
         AXIOMGUARD_CONFIG: ${{ inputs.config }}
         AXIOMGUARD_BASELINE: ${{ inputs.baseline }}
         AXIOMGUARD_ANNOTATIONS: ${{ inputs.annotations }}
+        AXIOMGUARD_AGENT_REPORT: ${{ inputs.agent-report }}
       run: |
         set -euo pipefail
         repo_path() {
@@ -88,7 +96,9 @@ runs:
         fi
         TARGET="$(repo_path "$AXIOMGUARD_INPUT_PATH")"
         SARIF="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.sarif"
+        AGENT_REPORT="$RUNNER_TEMP/axiomguard-${GITHUB_RUN_ID:-scan}.agent.json"
         ARGS=(scan "$TARGET" --sarif --output "$SARIF")
+        if [[ "$AXIOMGUARD_AGENT_REPORT" == "true" ]]; then ARGS+=(--agent-output "$AGENT_REPORT"); fi
         if [[ -n "$AXIOMGUARD_CONFIG" ]]; then ARGS+=(--config "$(repo_path "$AXIOMGUARD_CONFIG")"); fi
         if [[ -n "$AXIOMGUARD_BASELINE" ]]; then ARGS+=(--baseline "$(repo_path "$AXIOMGUARD_BASELINE")"); fi
         if [[ "$AXIOMGUARD_ANNOTATIONS" == "true" ]]; then ARGS+=(--github-annotations); fi
@@ -98,6 +108,7 @@ runs:
         STATUS=$?
         set -e
         if [[ -f "$SARIF" ]]; then echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"; else echo "sarif=" >> "$GITHUB_OUTPUT"; fi
+        if [[ "$AXIOMGUARD_AGENT_REPORT" == "true" && -f "$AGENT_REPORT" ]]; then echo "agent-report=$AGENT_REPORT" >> "$GITHUB_OUTPUT"; else echo "agent-report=" >> "$GITHUB_OUTPUT"; fi
         echo "exit-code=$STATUS" >> "$GITHUB_OUTPUT"
         if [[ "$STATUS" -eq 2 ]]; then
           echo "AxiomGuard failed to execute." >&2
