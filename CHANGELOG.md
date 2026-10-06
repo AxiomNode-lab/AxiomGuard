@@ -74,6 +74,7 @@ Security hardening release. Breaking changes are listed in [UPGRADING.md](UPGRAD
 - `parseApiKey`, peppered `hashApiKey`/`verifyApiKey`; base62 token alphabet so tokens are parseable.
 - `claimIdempotencyKey` accepts raw header values and reports `missing-key`/`invalid-key`.
 - `createRequestPolicy` (validated once, reusable), `allowCrossSiteFromAllowedOrigins`, table-driven decision matrix test.
+- `createCorsPolicy`, `allowHeaders: 'reflect'`, request-context aware `createCorsHeaders`.
 - `createFetchSecurityHandler`/`applySecurityHeaders` for Web-standard runtimes (Next.js middleware, SvelteKit, Cloudflare, Bun, Deno); `createSecurityCore` shared by all adapters; per-request `headers` functions for CSP nonces; `removePoweredBy`; `Vary` merging.
 - `cspNonceSource`, valueless CSP directives via `true`, `xssProtection` option.
 - `parseCookies`, `clearCookie`, cookie size cap and attribute validation.
@@ -132,6 +133,7 @@ Security hardening release. Breaking changes are listed in [UPGRADING.md](UPGRAD
 ### Added
 
 - Fetch-Metadata/Origin request policy for unsafe browser requests with conservative same-site/null-origin behavior and explicit machine-client opt-in.
+- Opt-in request-policy enforcement in the Express, Fastify and Hono adapters.
 - Idempotency-key normalization, SHA-256 store-key hashing, request fingerprints and bounded in-memory claim state.
 - Atomic node-redis and ioredis idempotency adapters that distinguish first use, replay and conflicting key reuse.
 - Meta/WhatsApp `X-Hub-Signature-256` verification against the raw request body.
