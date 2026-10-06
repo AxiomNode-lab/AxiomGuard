@@ -2,6 +2,15 @@ import { createHash } from 'node:crypto';
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import {
+  DEFAULT_FILESYSTEM_CONCURRENCY,
+  DEFAULT_IGNORE_DIRECTORIES,
+  DEFAULT_MAX_FILE_BYTES,
+  globToRegExp,
+  isSupportedTextPath,
+  mapWithConcurrency,
+  normalizePathSeparators,
+} from './scanner/file-policy.js';
 
 export {
   SCAN_SCHEMA_VERSION,
@@ -17,7 +26,15 @@ export {
   type SecurityRuleMetadata,
   type SecuritySeverity,
   type SourceLocation,
+  type RepositoryFile,
+  type RuleExecutionContext,
+  type SecurityPack,
+  type SecurityRule,
 } from './scanner/contracts.js';
+export { ScannerError, type ScannerErrorCode, type ScannerErrorDetails } from './scanner/errors.js';
+export { SecurityPackRegistry } from './scanner/registry.js';
+export { RepositoryScanContext, createRepositoryScanContext, type RepositoryScanContextOptions } from './scanner/repository.js';
+export { scanRepository, type ScanRepositoryOptions } from './scanner/runtime.js';
 
 export type SecretSeverity = 'error' | 'warning';
 
@@ -60,9 +77,7 @@ interface SecretRule extends SecretRuleInfo {
   pattern: RegExp;
 }
 
-const DEFAULT_IGNORE_DIRECTORIES = ['.git', 'node_modules', 'dist', 'build', 'coverage', '.next', '.cache', '.axiomguard', 'vendor', '.venv', 'venv', '__pycache__', 'target'];
-const DEFAULT_MAX_FILE_BYTES = 1_000_000;
-const DEFAULT_CONCURRENCY = 16;
+const DEFAULT_CONCURRENCY = DEFAULT_FILESYSTEM_CONCURRENCY;
 
 // Whole-value placeholders (anchored to the end) and reference prefixes such as `${VAR}`, `%VAR%`, `{{ x }}`.
 const PLACEHOLDER_WORD = String.raw`(?:changeme|change-me|example|placeholder|dummy|sample|your[_-]?[a-z0-9_-]+|<[^>]+>|\*{3,}|x{4,}|undefined|null|none|true|false)`;
@@ -103,23 +118,6 @@ const RULES: readonly SecretRule[] = [
   },
 ];
 
-const TEXT_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx', '.jsx', '.vue', '.svelte', '.astro',
-  '.json', '.json5', '.jsonc', '.yml', '.yaml', '.toml', '.ini', '.conf', '.cfg', '.properties', '.xml', '.plist',
-  '.env', '.txt', '.md', '.mdx', '.rst', '.adoc',
-  '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
-  '.py', '.rb', '.go', '.rs', '.java', '.kt', '.kts', '.scala', '.groovy', '.gradle', '.php', '.cs', '.fs', '.swift', '.dart', '.ex', '.exs', '.erl', '.hs', '.lua', '.pl', '.pm', '.r', '.c', '.h', '.cc', '.cpp', '.hpp', '.m', '.mm',
-  '.html', '.htm', '.css', '.scss', '.less',
-  '.sql', '.graphql', '.gql', '.proto', '.tf', '.tfvars', '.hcl', '.nomad', '.dockerfile', '.ipynb', '.csv', '.tsv',
-  '.pem', '.key', '.crt', '.cer', '.p8', '.ppk', '.asc', '.gpg',
-]);
-
-const TEXT_BASENAMES = new Set([
-  'dockerfile', 'containerfile', 'makefile', 'gnumakefile', 'rakefile', 'gemfile', 'procfile', 'vagrantfile', 'jenkinsfile', 'brewfile', 'justfile',
-  '.npmrc', '.yarnrc', '.pypirc', '.netrc', '.htpasswd', '.git-credentials', '.pgpass', '.my.cnf', '.boto', '.s3cfg', '.dockercfg',
-  'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519', 'credentials', 'config', 'secrets', 'known_hosts',
-]);
-
 const packageVersion = ((): string => {
   try {
     const pkg = createRequire(import.meta.url)('../package.json') as { version?: string };
@@ -130,44 +128,11 @@ const packageVersion = ((): string => {
 })();
 
 function normalizeRelative(filePath: string): string {
-  return filePath.split(path.sep).join('/');
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
-}
-
-function globToRegExp(pattern: string): RegExp {
-  const normalized = normalizeRelative(pattern).replace(/^\.\//, '');
-  let source = '^';
-  for (let index = 0; index < normalized.length; index += 1) {
-    const char = normalized[index]!;
-    if (char === '*') {
-      if (normalized[index + 1] === '*') {
-        // `**/` matches zero or more directories, like gitignore/minimatch.
-        if (normalized[index + 2] === '/') {
-          source += '(?:.*/)?';
-          index += 2;
-        } else {
-          source += '.*';
-          index += 1;
-        }
-      } else {
-        source += '[^/]*';
-      }
-    } else if (char === '?') {
-      source += '[^/]';
-    } else {
-      source += escapeRegExp(char);
-    }
-  }
-  return new RegExp(`${source}$`);
+  return normalizePathSeparators(filePath);
 }
 
 function shouldRead(filePath: string): boolean {
-  const base = path.basename(filePath).toLowerCase();
-  if (TEXT_BASENAMES.has(base) || base === '.env' || base.startsWith('.env.') || base.endsWith('.env')) return true;
-  return TEXT_EXTENSIONS.has(path.extname(base));
+  return isSupportedTextPath(filePath);
 }
 
 function isIgnoredFile(relativePath: string, patterns: readonly RegExp[]): boolean {
@@ -221,20 +186,6 @@ async function collectFiles(current: string, ignoredDirectories: ReadonlySet<str
     }
     if (entry.isFile()) files.push(fullPath);
   }
-}
-
-async function mapWithConcurrency<T, R>(items: readonly T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array<R>(items.length);
-  let next = 0;
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next;
-      next += 1;
-      results[index] = await worker(items[index]!);
-    }
-  });
-  await Promise.all(runners);
-  return results;
 }
 
 export function parseSecretScannerConfig(input: unknown): SecretScannerConfig {

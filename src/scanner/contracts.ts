@@ -33,11 +33,40 @@ export interface SecurityRuleMetadata {
   id: string;
   title: string;
   description: string;
+  category: string;
   severity: SecuritySeverity;
   confidence: FindingConfidence;
+  applicableStacks: readonly string[];
   impact: string;
   remediation: string;
   detectorId: string;
+  references?: readonly string[];
+}
+
+export interface RepositoryFile {
+  path: string;
+  size: number;
+}
+
+/** Runtime-only controlled repository access. Never persist this object in a ScanResult. */
+export interface RuleExecutionContext {
+  readonly detectedStackIds: readonly string[];
+  readonly signal?: AbortSignal;
+  listFiles(): Promise<readonly RepositoryFile[]>;
+  readTextFile(relativePath: string): Promise<string>;
+}
+
+export interface SecurityRule extends SecurityRuleMetadata {
+  detect(context: RuleExecutionContext): readonly NormalizedFinding[] | Promise<readonly NormalizedFinding[]>;
+}
+
+export interface SecurityPack {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  applicableStacks?: readonly string[];
+  rules: readonly SecurityRule[];
 }
 
 export interface NormalizedFinding {
@@ -64,6 +93,8 @@ export interface ScanVersionMetadata {
 export interface ScanContext {
   target: string;
   detectorIds: readonly string[];
+  packIds?: readonly string[];
+  stackIds?: readonly string[];
 }
 
 export interface ScanResult {

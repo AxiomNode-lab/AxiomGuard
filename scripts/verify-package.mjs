@@ -72,6 +72,7 @@ const root = await import('@axiomnode-lab/guard');
 if (typeof root.secureToken !== 'function' || typeof root.safeFetch !== 'function') throw new Error('root export is incomplete');
 if (typeof root.evaluateRequestPolicy !== 'function' || typeof root.claimIdempotencyKey !== 'function') throw new Error('API protection exports are incomplete');
 if (typeof root.verifyMetaWebhook !== 'function' || typeof root.verifyStandardWebhook !== 'function') throw new Error('provider webhook exports are incomplete');
+if (typeof root.scanRepository !== 'function' || typeof root.SecurityPackRegistry !== 'function') throw new Error('generalized scanner exports are incomplete');
 if (typeof require('@axiomnode-lab/guard').safeFetch !== 'function') throw new Error('require() of the root export failed');
 if (require('@axiomnode-lab/guard/package.json').version !== ${JSON.stringify(packageJson.version)}) throw new Error('package.json export mismatch');
 for (const subpath of subpaths) {
@@ -84,7 +85,8 @@ for (const subpath of subpaths) {
   run(process.execPath, ['verify.mjs'], workspace);
 
   const typeConsumer = `
-import { claimIdempotencyKey, evaluateRequestPolicy, requireEnv, secureToken, safeFetch, verifyMetaWebhook } from '@axiomnode-lab/guard';
+import { SecurityPackRegistry, claimIdempotencyKey, evaluateRequestPolicy, requireEnv, scanRepository, secureToken, safeFetch, verifyMetaWebhook } from '@axiomnode-lab/guard';
+import type { SecurityPack, SecurityRule } from '@axiomnode-lab/guard/scanner';
 import { MemoryIdempotencyStore } from '@axiomnode-lab/guard/idempotency';
 import { verifyGitHubWebhookDelivery } from '@axiomnode-lab/guard/webhooks';
 import { createFetchSecurityHandler } from '@axiomnode-lab/guard/adapters/fetch';
@@ -101,6 +103,12 @@ void evaluateRequestPolicy;
 void verifyMetaWebhook;
 void verifyGitHubWebhookDelivery;
 void createFetchSecurityHandler;
+void SecurityPackRegistry;
+void scanRepository;
+let rule!: SecurityRule;
+let pack!: SecurityPack;
+void rule;
+void pack;
 `;
   await writeFile(path.join(workspace, 'consumer.ts'), typeConsumer, 'utf8');
   const tsc = path.join(root, 'node_modules', 'typescript', 'bin', 'tsc');
