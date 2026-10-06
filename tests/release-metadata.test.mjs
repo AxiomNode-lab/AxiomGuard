@@ -21,7 +21,11 @@ test('published release metadata guard rejects Unreleased and accepts a dated en
 
     const changelogSource = await readFile('CHANGELOG.md', 'utf8');
     const changelogTarget = join(tempDir, 'CHANGELOG.md');
-    await writeFile(changelogTarget, changelogSource, 'utf8');
+    const unreleasedChangelog = changelogSource.replace(
+      /^## \[(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\] - \d{4}-\d{2}-\d{2}$/m,
+      '## [$1] - Unreleased',
+    );
+    await writeFile(changelogTarget, unreleasedChangelog, 'utf8');
 
     await assert.rejects(
       execFileAsync(process.execPath, [join(tempDir, 'scripts/check-published-release.mjs')], {
