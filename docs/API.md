@@ -57,7 +57,7 @@ Conventions that hold across the whole SDK:
 | Export | Purpose |
 | --- | --- |
 | `createRequestPolicy(options)` | Validate once; returns `{ evaluate(input), assert(input) }`. Options: `allowedOrigins`, `safeMethods` (GET/HEAD/OPTIONS), `allowSameSite`, `allowNoOrigin`, `allowCrossSiteFromAllowedOrigins`. |
-| `evaluateRequestPolicy(input, options?)` | One-shot evaluation. Input: `{ method, origin?, secFetchSite? }`. Returns `{ allowed, reason }` — see [API_PROTECTION.md](API_PROTECTION.md) for the decision matrix. |
+| `evaluateRequestPolicy(input, options?)` | One-shot evaluation. Input: `{ method, origin?, secFetchSite? }`. Returns `{ allowed, reason }` — see [API_PROTECTION.md](../API_PROTECTION.md) for the decision matrix. |
 | `assertRequestAllowed(input, options?)` | Throws `RequestPolicyError` (with `.reason`) when blocked. |
 
 ## `@axiomnode-lab/guard/idempotency`
