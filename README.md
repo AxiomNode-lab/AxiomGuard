@@ -25,11 +25,13 @@ See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit an
 
 ## Install
 
-**Requirements:** Node.js 20 or newer (22 or 24 LTS recommended). AxiomGuard is published as an ES module; `require()` works on Node 20.19+/22.12+ through `require(esm)`. TypeScript 5.x with `moduleResolution: node16 | nodenext | bundler`.
+**Requirements:** Node.js 22 or newer (24 LTS recommended; 26 supported). AxiomGuard is published as an ES module; `require()` works on Node 22.12+ through `require(esm)`. TypeScript 5.x with `moduleResolution: node16 | nodenext | bundler`.
 
 ```bash
 npm install @axiomnode-lab/guard
 ```
+
+> **Beta channel:** `0.8.0-beta.1` is a prerelease for evaluation and may change before stable. The stable npm release remains `0.7.1` until the beta is explicitly published. After publication, install the beta channel with `npm install @axiomnode-lab/guard@beta`.
 
 Also works with other package managers:
 
