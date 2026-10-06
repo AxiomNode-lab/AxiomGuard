@@ -146,6 +146,8 @@
     "docs/GITHUB_ACTION.md",
     "docs/SAFE_FETCH.md",
     "docs/SCANNER.md",
+    "docs/SCANNER_ARCHITECTURE.md",
+    "docs/rules/CORE-001.md",
     "docs/axiomguard-demo.svg"
   ],
   "scripts": {
