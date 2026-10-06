@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-AxiomGuard is pre-1.0. Until a stable release exists, only the latest released minor version receives security fixes. Security-relevant default changes are announced in [UPGRADING.md](UPGRADING.md).
+AxiomGuard is pre-1.0. The latest stable minor version is the primary supported release line. Beta and other prerelease versions are evaluation builds and may change security defaults or APIs before stable. Security-relevant default changes are announced in [UPGRADING.md](UPGRADING.md).
 
 ## Reporting a vulnerability
 
