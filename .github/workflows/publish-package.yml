@@ -79,8 +79,13 @@ jobs:
           STATUS=$?
           set -e
           if [ "$STATUS" -eq 0 ]; then
+            EXISTING_TAG="$(npm view "@axiomnode-lab/guard" "dist-tags.${DIST_TAG}" --registry=https://npm.pkg.github.com 2>/dev/null || true)"
+            if [ "$EXISTING_TAG" != "$VERSION" ]; then
+              echo "::error::${VERSION} already exists on GitHub Packages but dist-tag ${DIST_TAG} does not point to it."
+              exit 1
+            fi
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Package ${VERSION} already exists; skipping publish."
+            echo "Package ${VERSION} already exists with dist-tag ${DIST_TAG}; skipping publish."
           elif grep -Eqi 'E404|404 Not Found' /tmp/axiomguard-view.err; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
             echo "Package ${VERSION} is not present; publication is required."
@@ -112,8 +117,9 @@ jobs:
         run: |
           for ATTEMPT in 1 2 3 4 5; do
             ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://npm.pkg.github.com 2>/dev/null || true)"
-            if [ "$ACTUAL" = "$VERSION" ]; then
-              echo "Verified @axiomnode-lab/guard@${VERSION} in GitHub Packages."
+            TAGGED="$(npm view "@axiomnode-lab/guard" "dist-tags.${DIST_TAG}" --registry=https://npm.pkg.github.com 2>/dev/null || true)"
+            if [ "$ACTUAL" = "$VERSION" ] && [ "$TAGGED" = "$VERSION" ]; then
+              echo "Verified @axiomnode-lab/guard@${VERSION} in GitHub Packages with dist-tag ${DIST_TAG}."
               exit 0
             fi
             sleep $((ATTEMPT * 3))

@@ -1517,9 +1517,9 @@ import { redactSecrets } from '@axiomnode-lab/guard/logging';
 const safe = redactSecrets({
   user: 'alice',
   authorization: 'Bearer very-sensitive-token',
-  apiKey: 'secret-value',
+  apiKey: '<api-key>',
   nested: {
-    clientSecret: 'another-secret',
+    clientSecret: '<client-secret>',
   },
 });
 

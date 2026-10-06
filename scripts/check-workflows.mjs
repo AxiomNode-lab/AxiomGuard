@@ -87,6 +87,9 @@ if (packagePublishWorkflow) {
   if (!packagePublishWorkflow.includes('DIST_TAG: ${{ steps.version.outputs.dist-tag }}')) {
     violations.push('publish-package.yml must carry the dist-tag output into the publish step');
   }
+  if (!packagePublishWorkflow.includes('dist-tags.${DIST_TAG}')) {
+    violations.push('publish-package.yml must verify the computed dist-tag points to the published version');
+  }
   if (!packagePublishWorkflow.includes('scripts/check-release-tag.mjs')) {
     violations.push('publish-package.yml must validate release tag prerelease metadata');
   }
