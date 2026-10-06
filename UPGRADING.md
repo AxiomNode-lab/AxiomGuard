@@ -6,7 +6,7 @@
 
 The 0.8.0 beta is a prerelease. It raises the supported Node.js baseline from 20 to 22 because Node.js 20 is end-of-life. Node.js 22, 24 and 26 are qualified in CI.
 
-The beta also includes the unreleased 0.7.2 security and release-pipeline hardening work. No application migration is required for the normal security APIs beyond the stricter runtime validation already described below.
+The beta also includes the unreleased security and release-pipeline hardening prepared during the prior release-candidate cycle. No application migration is required for the normal security APIs beyond the stricter runtime validation already described below.
 
 ### Beta channel
 
