@@ -470,6 +470,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [GitHub Action](docs/GITHUB_ACTION.md)
 - [Security policy](SECURITY.md)
 - [Threat model](THREAT_MODEL.md)
+- [Security assurance](docs/SECURITY_ASSURANCE.md)
 - [Changelog](https://github.com/AxiomNode-lab/AxiomGuard/blob/main/CHANGELOG.md)
 
 ## Contributing
