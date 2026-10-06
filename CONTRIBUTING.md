@@ -5,7 +5,7 @@ Contributions are welcome when they keep the package small, auditable and securi
 ## Development setup
 
 ```bash
-nvm use            # Node 24 (see .nvmrc); 20 and 22 are also supported
+nvm use            # Node 24 (see .nvmrc); 22 and 26 are also supported
 npm ci
 npm run check      # typecheck + lint + unit tests + type tests
 ```
