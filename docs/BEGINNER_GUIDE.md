@@ -253,6 +253,551 @@ export default {
 
 ---
 
+# 6. Using AxiomGuard with AI applications
+
+You can also use AxiomGuard when your application talks to an AI model, agent, chatbot, RAG system, tool-calling workflow, or AI API.
+
+The key idea is simple:
+
+> **AxiomGuard protects the application around the AI model. It does not try to replace the model provider's safety controls.**
+
+For example, imagine this flow:
+
+```text
+User
+  |
+  v
+Your API / AI application
+  |
+  +--> AxiomGuard request policy
+  +--> Authentication / API key checks
+  +--> Rate limiting
+  +--> Input validation
+  |
+  v
+AI model / AI provider
+  |
+  +--> Tool calls / URLs / webhooks
+  |
+  v
+AxiomGuard protected operations
+```
+
+This is useful because AI applications often make security-sensitive decisions or requests on behalf of a user.
+
+## 6.1 Simple AI backend example
+
+A beginner-friendly pattern is to put AxiomGuard in your backend before calling the model provider.
+
+Example:
+
+```ts
+import { safeFetch } from '@axiomnode-lab/guard/fetch';
+import {
+  createApiKey,
+  parseApiKey,
+  verifyApiKey,
+} from '@axiomnode-lab/guard/api-keys';
+import {
+  MemoryRateLimitStore,
+  checkRateLimit,
+} from '@axiomnode-lab/guard/rate-limit';
+
+const rateStore = new MemoryRateLimitStore();
+
+async function handleAiRequest(request: Request) {
+  // 1. Authenticate the caller.
+  const authorization = request.headers.get('authorization');
+  const token = authorization?.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : null;
+
+  if (!token) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const parsed = parseApiKey(token);
+
+  if (!parsed) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const record = await db.apiKeys.findById(parsed.id);
+
+  if (!record || !verifyApiKey(token, record.digest)) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  // 2. Rate-limit AI requests.
+  const limit = await checkRateLimit(
+    `ai:${parsed.id}`,
+    {
+      limit: 30,
+      windowMs: 60_000,
+      store: rateStore,
+    },
+  );
+
+  if (!limit.allowed) {
+    return new Response('Too Many Requests', { status: 429 });
+  }
+
+  // 3. Read and validate the application input.
+  const body = await request.json();
+
+  if (
+    typeof body.prompt !== 'string' ||
+    body.prompt.length === 0 ||
+    body.prompt.length > 20_000
+  ) {
+    return new Response('Invalid prompt', { status: 400 });
+  }
+
+  // 4. Call your AI provider from the server.
+  // Keep the provider secret on the server.
+  const aiResponse = await fetch(process.env.AI_API_URL!, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${process.env.AI_API_KEY!}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.AI_MODEL,
+      input: body.prompt,
+    }),
+  });
+
+  return new Response(aiResponse.body, {
+    status: aiResponse.status,
+    headers: {
+      'content-type':
+        aiResponse.headers.get('content-type') ?? 'application/json',
+    },
+  });
+}
+```
+
+The important part is not the exact AI provider. The security pattern is:
+
+```text
+Authenticate
+   ↓
+Rate limit
+   ↓
+Validate input
+   ↓
+Call AI provider from the server
+   ↓
+Apply security checks to any tools/network access
+   ↓
+Return the result
+```
+
+Never put your AI provider secret directly in browser code.
+
+## 6.2 Protect AI agents that can access URLs
+
+This becomes especially important for AI agents.
+
+Suppose an agent can receive a URL and then fetch it:
+
+```text
+User prompt
+    ↓
+AI agent
+    ↓
+"Open this URL"
+    ↓
+Your server fetches the URL
+```
+
+That is an SSRF risk when the URL is user-controlled or model-controlled.
+
+Instead of:
+
+```ts
+const response = await fetch(urlFromUserOrAgent);
+```
+
+use:
+
+```ts
+import { safeFetch } from '@axiomnode-lab/guard/fetch';
+
+const response = await safeFetch(urlFromUserOrAgent, {
+  protocols: ['https:'],
+  allowedHosts: ['api.example.com'],
+  maxRedirects: 2,
+  timeoutMs: 5_000,
+  maxResponseBytes: 5_000_000,
+});
+```
+
+This is a particularly useful pattern for:
+
+- AI web agents
+- URL summarizers
+- document fetchers
+- RAG ingestion services
+- browser automation backends
+- webhook-driven AI workers
+- tool-calling agents
+
+Do not assume that a URL is safe just because the AI model suggested it.
+
+## 6.3 Protect tool-calling agents
+
+A tool-calling agent may have functions such as:
+
+```text
+searchWeb()
+getDocument()
+sendWebhook()
+createOrder()
+runJob()
+```
+
+Treat every tool as an API endpoint.
+
+A good rule is:
+
+```text
+AI decides what to request
+        ↓
+Your application validates the request
+        ↓
+AxiomGuard applies the relevant security control
+        ↓
+Only then execute the tool
+```
+
+For example:
+
+### AI wants to call an external HTTP API
+
+Use `safeFetch()` when the destination can be influenced by the user or model.
+
+### AI wants to call a protected internal API
+
+Use normal authentication and authorization. AxiomGuard API keys can help with generated machine credentials, but they do not decide whether the AI is allowed to perform a business action.
+
+### AI wants to create a resource
+
+Use idempotency for operations that may be retried:
+
+```ts
+const fingerprint = createIdempotencyFingerprint({
+  method: request.method,
+  target: '/api/orders',
+  contentType: request.headers.get('content-type'),
+  body: rawBody,
+});
+```
+
+Then claim an idempotency key before performing the write.
+
+## 6.4 AI chatbot + browser security
+
+For a browser-based AI chat application, you can combine:
+
+- security headers
+- CORS
+- request policy
+- CSRF protection
+- authentication
+- rate limiting
+
+A typical flow is:
+
+```text
+Browser
+  ↓
+Security headers + CORS
+  ↓
+Request policy / CSRF checks
+  ↓
+Authentication
+  ↓
+Rate limit
+  ↓
+AI endpoint
+  ↓
+AI provider
+```
+
+CORS still does **not** authenticate the user, and AI output should not be trusted as authorization.
+
+For example, do not do this:
+
+```ts
+if (modelOutput === 'admin approved') {
+  performSensitiveAction();
+}
+```
+
+The model can help make decisions, but your application must enforce authorization independently.
+
+## 6.5 AI + webhooks
+
+AI systems often react to provider events.
+
+For example:
+
+```text
+Payment webhook
+      ↓
+Verify signature
+      ↓
+Check replay/freshness
+      ↓
+Parse event
+      ↓
+Queue AI job
+      ↓
+AI worker
+```
+
+Use AxiomGuard webhook verification **before** passing an event to the AI workflow.
+
+The AI model should never be responsible for deciding whether a webhook signature is valid.
+
+## 6.6 AI secrets and logs
+
+AI applications frequently handle sensitive prompts, tokens, tool arguments, and provider credentials.
+
+Keep secrets on the server:
+
+```text
+Browser
+   X  AI_API_KEY
+   X  webhook secret
+   X  database credential
+
+Server
+   ✓ AI_API_KEY
+   ✓ webhook secrets
+   ✓ database credentials
+```
+
+Before logging tool calls or model requests, consider:
+
+```ts
+import { redactSecrets, maskPII } from '@axiomnode-lab/guard/logging';
+
+const safeRequest = redactSecrets({
+  tool: 'searchWeb',
+  authorization: request.headers.get('authorization'),
+  arguments: toolArguments,
+});
+
+console.log({
+  request: maskPII(JSON.stringify(safeRequest)),
+});
+```
+
+Do not blindly log complete prompts, tokens, authorization headers, uploaded documents, or model responses. AI applications may contain personal or confidential information even when there is no obvious password.
+
+## 6.7 RAG / document ingestion
+
+A RAG system often looks like:
+
+```text
+Upload document
+      ↓
+Validate input
+      ↓
+Store safely
+      ↓
+Extract text
+      ↓
+Chunk + embed
+      ↓
+Vector database
+      ↓
+Retrieve context
+      ↓
+AI model
+```
+
+AxiomGuard can help with the application-security parts around this pipeline:
+
+- `safePath()` for filesystem destinations
+- `sanitizeFilename()` for upload names
+- `redactSecrets()` before logs
+- rate limiting on upload/search endpoints
+- request policy and authentication
+- `safeFetch()` when documents are imported from URLs
+
+Remember that AxiomGuard does not inspect document content for prompt injection or malware.
+
+You still need application-level content validation and, where appropriate, dedicated malware/content scanning.
+
+## 6.8 MCP-style or agent-tool servers
+
+When an AI system connects to a server exposing tools, treat those tools like public API endpoints.
+
+For each tool:
+
+```text
+1. authenticate the caller
+2. authorize the requested action
+3. validate every argument
+4. rate-limit expensive operations
+5. use safeFetch for untrusted network destinations
+6. use idempotency for retryable writes
+7. redact sensitive values from logs
+8. fail closed on security checks
+```
+
+Do not trust a model-generated argument simply because the model produced it.
+
+Example:
+
+```ts
+async function runTool(args: unknown) {
+  const input = validateToolArguments(args);
+
+  if (!input.ok) {
+    throw new Error('Invalid tool arguments');
+  }
+
+  const response = await safeFetch(input.url, {
+    protocols: ['https:'],
+    allowedHosts: ['api.example.com'],
+  });
+
+  return response;
+}
+```
+
+The validation function in this example is part of your application. AxiomGuard does not know your business rules.
+
+## 6.9 Protecting AI endpoints from abuse
+
+AI endpoints can be expensive.
+
+A user may repeatedly send requests that trigger:
+
+- large prompts
+- expensive models
+- repeated tool calls
+- large document retrieval
+- long-running agent loops
+
+Use rate limiting and application quotas:
+
+```text
+user / API key
+     ↓
+rate limit
+     ↓
+request size limit
+     ↓
+application quota
+     ↓
+AI call
+```
+
+AxiomGuard provides the rate-limit primitive. Your application should define the actual quota policy, such as:
+
+```text
+Free user:
+  20 requests/minute
+
+Pro user:
+  120 requests/minute
+
+Internal worker:
+  dedicated service limit
+```
+
+Also consider limiting maximum prompt size and maximum tool-call depth in the application.
+
+## 6.10 Example: a safer AI tool workflow
+
+A practical beginner design is:
+
+```text
+                    +-------------------+
+                    |      Browser      |
+                    +---------+---------+
+                              |
+                              v
+                    +-------------------+
+                    | Authentication    |
+                    | CORS / CSRF       |
+                    | Request Policy    |
+                    +---------+---------+
+                              |
+                              v
+                    +-------------------+
+                    |   Rate Limiting   |
+                    +---------+---------+
+                              |
+                              v
+                    +-------------------+
+                    |    AI Endpoint    |
+                    +---------+---------+
+                              |
+                    +---------+---------+
+                    |                   |
+                    v                   v
+             +-------------+     +-------------+
+             | AI Provider |     | AI Tools    |
+             +-------------+     +------+------+
+                                      |
+                              +-------+-------+
+                              | AxiomGuard    |
+                              | safeFetch     |
+                              | API keys      |
+                              | idempotency   |
+                              | logging       |
+                              +---------------+
+```
+
+The AI model is inside the workflow, but your application remains the security authority.
+
+## 6.11 Beginner AI checklist
+
+Before putting an AI feature into production, ask:
+
+```text
+[ ] Is the AI provider key server-side only?
+[ ] Is the caller authenticated?
+[ ] Is authorization enforced outside the model?
+[ ] Is the AI endpoint rate-limited?
+[ ] Are prompts and tool arguments size-limited?
+[ ] Are model-controlled URLs passed through safeFetch()?
+[ ] Are retryable writes protected with idempotency?
+[ ] Are webhooks verified before entering the AI workflow?
+[ ] Are secrets removed from logs?
+[ ] Are uploads stored with safe filesystem paths?
+[ ] Are external services protected with normal network egress controls?
+[ ] Is there a timeout for model/tool operations?
+[ ] Is there an independent content/malware/prompt-injection strategy?
+```
+
+### What AxiomGuard does not solve for AI
+
+AxiomGuard is useful around AI applications, but it does not automatically protect against every AI-specific threat.
+
+It does not by itself guarantee protection against:
+
+- prompt injection
+- jailbreaks
+- model hallucinations
+- unsafe model output
+- poisoned training data
+- malicious documents
+- excessive agent loops
+- unauthorized business decisions
+- data leakage caused by your application design
+
+For those problems, add AI-specific validation, authorization, content safety, data governance, observability, and network controls.
+
+
+---
+
 # 6. API keys
 
 Use AxiomGuard API keys for machine-to-machine authentication where your application needs a generated credential.
