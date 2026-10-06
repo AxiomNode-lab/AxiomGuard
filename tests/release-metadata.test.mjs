@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
@@ -11,6 +11,8 @@ test('published release metadata guard rejects Unreleased and accepts a dated en
   const tempDir = await mkdtemp(join(process.env.RUNNER_TEMP ?? process.env.TMPDIR ?? '/tmp', 'axiomguard-release-check-'));
 
   try {
+    await mkdir(join(tempDir, 'scripts'), { recursive: true });
+
     for (const file of ['package.json', 'package-lock.json', 'scripts/check-published-release.mjs']) {
       const source = join(process.cwd(), file);
       const target = join(tempDir, file);
