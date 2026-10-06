@@ -17,7 +17,7 @@ import {
 } from '../dist/index.js';
 
 test('redactSecrets redacts sensitive keys without mutating input', () => {
-  const input = { user: 'imed', password: 'secret123', nested: { api_key: 'abc' } };
+  const input = { user: 'test-user', password: 'secret123', nested: { api_key: 'abc' } };
   const result = redactSecrets(input);
   assert.equal(result.password, '[REDACTED]');
   assert.equal(result.nested.api_key, '[REDACTED]');
