@@ -10,7 +10,7 @@ const AWS_KEY = ['AKIA', 'IOSFODNN7EXAMPLE'].join('');
 test('agent report enriches findings without exposing matched values', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'axiomguard-agent-'));
   try {
-    const content = ['AWS_ACCESS_KEY=' + AWS_KEY, 'TOKEN=not-secret-enough', ''].join('\n');
+    const content = ['AWS_ACCESS_KEY=' + AWS_KEY, 'TOKEN=${TOKEN}', ''].join('\n');
     await writeFile(path.join(dir, 'config.env'), content);
     const report = await scanForAgent(dir);
     assert.equal(report.schemaVersion, '1');
