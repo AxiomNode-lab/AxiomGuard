@@ -26,9 +26,8 @@ const failures = [];
 for (const file of markdownFiles) {
   const source = await readFile(file, 'utf8');
   const withoutCode = source.replace(/```[\s\S]*?```/g, '');
-  const re = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+['\"][^)]*['\"])??\)/g;
-  let match;
-  while ((match = re.exec(withoutCode))) {
+  const re = /!?\[[^]]*\]\(([^)\s]+)(?:\s+['"][^)]*['"])?\)/g;
+  for (const match of withoutCode.matchAll(re)) {
     const target = match[1] ?? '';
     if (!target || isExternal(target)) continue;
     const clean = target.split('#', 1)[0].split('?', 1)[0];
