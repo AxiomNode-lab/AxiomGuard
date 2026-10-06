@@ -39,6 +39,7 @@ const requiredPublicFiles = [
   'docs/GITHUB_ACTION.md',
   'docs/SAFE_FETCH.md',
   'docs/SCANNER.md',
+  'docs/AI_CI_CD.md',
   'docs/axiomguard-demo.svg',
 ];
 for (const file of requiredPublicFiles) {
