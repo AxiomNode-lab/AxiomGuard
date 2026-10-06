@@ -29,17 +29,22 @@ See [how it compares](docs/COMPARISON.md) to helmet, cors, express-rate-limit an
 
 ```bash
 npm install @axiomnode-lab/guard
+pnpm add @axiomnode-lab/guard
+yarn add @axiomnode-lab/guard
+bun add @axiomnode-lab/guard
 ```
 
-> **Beta channel:** `0.8.0-beta.1` is a prerelease for evaluation and may change before stable. The stable npm release remains `0.7.1` until the beta is explicitly published. After publication, install the beta channel with `npm install @axiomnode-lab/guard@beta`.
-
-Also works with other package managers:
+For one-off CLI use without adding a dependency:
 
 ```bash
-pnpm add @axiomnode-lab/guard
-# or
-yarn add @axiomnode-lab/guard
+npx @axiomnode-lab/guard@beta scan .
+pnpm dlx @axiomnode-lab/guard@beta scan .
+yarn dlx @axiomnode-lab/guard@beta scan .
+bunx @axiomnode-lab/guard@beta scan .
+npm exec --yes @axiomnode-lab/guard@beta -- scan .
 ```
+
+> **Beta channel:** `0.8.0-beta.2` is the current prerelease development line. The stable npm release remains `0.7.1`. Install the beta explicitly with `@beta` or an exact prerelease version.
 
 ## New to AxiomGuard?
 
@@ -388,10 +393,11 @@ npx axiomguard scan . --sarif --output axiomguard.sarif
 npx axiomguard scan . --exclude 'fixtures/**' --max-file-bytes 500000
 npx axiomguard scan . --write-baseline .axiomguard-baseline.json
 npx axiomguard scan . --github-annotations --no-fail
+npx axiomguard ci . --no-fail --output axiomguard-agent.json
 npx axiomguard rules
 ```
 
-The scanner reports the finding type, file, line and a non-secret fingerprint. It intentionally does not print detected secret values. Exit codes: `0` clean, `1` new findings, `2` error.
+The scanner reports the finding type, file, line and a non-secret fingerprint. It intentionally does not print detected secret values. Exit codes: `0` clean, `1` new findings, `2` error. The `ci` command emits a stable AI/CI-safe JSON report with severity, remediation guidance and release-gating state.
 
 Run it without installing Node:
 
@@ -473,6 +479,7 @@ Read [SECURITY.md](SECURITY.md) for vulnerability reporting and [THREAT_MODEL.md
 - [Framework adapters](docs/ADAPTERS.md)
 - [Safe fetch](docs/SAFE_FETCH.md)
 - [Scanner](docs/SCANNER.md)
+- [AI and CI/CD integration](docs/AI_CI_CD.md)
 - [GitHub Action](docs/GITHUB_ACTION.md)
 - [Security policy](SECURITY.md)
 - [Threat model](THREAT_MODEL.md)
