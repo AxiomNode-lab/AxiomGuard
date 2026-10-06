@@ -36,6 +36,7 @@ jobs:
       - run: node scripts/check-workflows.mjs
       - run: npm ci
       - run: npm run check:release
+      - run: npm run check:docs
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
