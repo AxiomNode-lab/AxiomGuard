@@ -2,7 +2,7 @@
 
 ## [0.8.0-beta.1] - Unreleased
 
-Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the 0.7.2 cycle. The GitHub Release and registry publication are not created yet.
+Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the prior release-candidate cycle. The GitHub Release and registry publication are not created yet.
 
 ### Breaking
 
