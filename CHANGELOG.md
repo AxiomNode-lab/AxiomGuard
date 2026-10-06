@@ -1,8 +1,13 @@
 # Changelog
 
-## [0.7.2] - Unreleased
+## [0.8.0-beta.1] - Unreleased
 
-Security and release-pipeline hardening completed for the 0.7.2 release candidate. The GitHub Release and registry publication are not created yet.
+Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the prior release-candidate cycle. The GitHub Release and registry publication are not created yet.
+
+### Breaking
+
+- Node.js 20 is no longer supported; the beta requires Node.js 22 or newer.
+- Prerelease publication uses the `beta` npm channel and must never move the stable `latest` package or container tags.
 
 ### Security
 

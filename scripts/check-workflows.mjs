@@ -61,6 +61,49 @@ for (const name of entries) {
 }
 
 const workflowText = await Promise.all(entries.map((name) => readFile(path.join(workflowDir, name), 'utf8')));
+
+const workflowByName = new Map(entries.map((name, index) => [name, workflowText[index] ?? '']));
+const npmPublishWorkflow = workflowByName.get('publish-npmjs.yml');
+if (npmPublishWorkflow) {
+  if (!npmPublishWorkflow.includes('npm install --global npm@11.21.0')) {
+    violations.push('publish-npmjs.yml must use npm 11.21.0+ for OIDC prerelease dist-tag support');
+  }
+  if (!npmPublishWorkflow.includes('--tag "${{ steps.version.outputs.dist-tag }}"')) {
+    violations.push('publish-npmjs.yml must publish with the computed dist-tag');
+  }
+  if (!npmPublishWorkflow.includes('DIST_TAG: ${{ steps.version.outputs.dist-tag }}')) {
+    violations.push('publish-npmjs.yml must carry the dist-tag output into the verification step');
+  }
+  if (!npmPublishWorkflow.includes('scripts/check-release-tag.mjs')) {
+    violations.push('publish-npmjs.yml must validate release tag prerelease metadata');
+  }
+}
+
+const packagePublishWorkflow = workflowByName.get('publish-package.yml');
+if (packagePublishWorkflow) {
+  if (!packagePublishWorkflow.includes('npm publish --ignore-scripts --tag "$DIST_TAG"')) {
+    violations.push('publish-package.yml must keep prerelease publication on the beta dist-tag');
+  }
+  if (!packagePublishWorkflow.includes('DIST_TAG: ${{ steps.version.outputs.dist-tag }}')) {
+    violations.push('publish-package.yml must carry the dist-tag output into the publish step');
+  }
+  if (!packagePublishWorkflow.includes('scripts/check-release-tag.mjs')) {
+    violations.push('publish-package.yml must validate release tag prerelease metadata');
+  }
+}
+
+const containerPublishWorkflow = workflowByName.get('publish-container.yml');
+if (containerPublishWorkflow) {
+  if (!containerPublishWorkflow.includes("type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}")) {
+    violations.push('publish-container.yml must not create major.minor tags for prerelease releases');
+  }
+  if (!containerPublishWorkflow.includes("type=raw,value=latest,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}")) {
+    violations.push('publish-container.yml must not move latest for prerelease releases');
+  }
+  if (!containerPublishWorkflow.includes('scripts/check-release-tag.mjs')) {
+    violations.push('publish-container.yml must validate release tag prerelease metadata');
+  }
+}
 for (let i = 0; i < entries.length; i += 1) {
   if (/^\s*pull_request_target\s*:/m.test(workflowText[i])) {
     violations.push(`${entries[i]} uses pull_request_target; review whether untrusted code can reach privileged steps`);

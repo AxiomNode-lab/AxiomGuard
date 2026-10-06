@@ -5,7 +5,7 @@ Contributions are welcome when they keep the package small, auditable and securi
 ## Development setup
 
 ```bash
-nvm use            # Node 24 (see .nvmrc); 20 and 22 are also supported
+nvm use            # Node 24 (see .nvmrc); 22 and 26 are also supported
 npm ci
 npm run check      # typecheck + lint + unit tests + type tests
 ```
@@ -40,6 +40,6 @@ Two-space indentation, single quotes, semicolons, trailing commas, explicit retu
 
 ## Commit messages and releases
 
-Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches the package version in `package.json`. Keep release notes and migration notes current in `CHANGELOG.md` and `UPGRADING.md`.
+Use a short imperative subject and a body that explains *why*. Releases are cut from `main` by a GitHub Release whose tag matches the package version in `package.json`. Stable releases use `vMAJOR.MINOR.PATCH`; prereleases use an explicit suffix such as `-beta.1` and must be marked as prerelease on GitHub. Beta package publication uses the `beta` npm channel and must never move the stable `latest` package or container tags. Keep release notes and migration notes current in `CHANGELOG.md` and `UPGRADING.md`.
 
 For vulnerability reports, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.

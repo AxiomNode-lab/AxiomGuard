@@ -31,15 +31,13 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
           MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
           if [ "$EVENT_NAME" = "release" ]; then
-            case "$RELEASE_TAG" in
-              v[0-9]*.[0-9]*.[0-9]*) ;;
-              *) echo "::error::Release tag must use vMAJOR.MINOR.PATCH; got $RELEASE_TAG"; exit 1 ;;
-            esac
+            node scripts/check-release-tag.mjs
             RELEASE_SHA="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
             if [ "$RELEASE_SHA" != "$MAIN_SHA" ]; then
               echo "::error::Release tag $RELEASE_TAG must point to the current main commit $MAIN_SHA; got $RELEASE_SHA."
@@ -79,8 +77,8 @@ jobs:
             type=raw,value=edge,enable=${{ github.event_name == 'push' }}
             type=sha,enable=${{ github.event_name == 'push' }}
             type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .

@@ -34,9 +34,9 @@ It should not be described as:
 
 The repository currently has extensive self-review, regression coverage and CI hardening, but **no independent third-party penetration test or security audit is claimed**. Such an audit should be treated as a separate release-readiness milestone rather than implied by the existing test suite.
 
-## 0.7.2 verification priorities
+## 0.8.0-beta.1 verification priorities
 
-Before publishing 0.7.2, the release candidate should have:
+Before publishing 0.8.0-beta.1, the release candidate should have:
 
 1. consistent package, lockfile and changelog metadata;
 2. a green full CI matrix;
@@ -44,5 +44,7 @@ Before publishing 0.7.2, the release candidate should have:
 4. framework and Redis integration success;
 5. container and GitHub Action smoke-test success;
 6. a documented scanner evaluation corpus covering every shipped rule with synthetic positives and representative negative cases, plus known limitations;
-7. reproducible release provenance and registry read-back verification.
+7. release-channel separation: prerelease packages use the `beta` npm channel and beta container releases never move `latest` or `major.minor` tags;
+8. reproducible release provenance and registry read-back verification;
+9. supported runtime qualification on Node.js 22, 24 and 26.
 

@@ -1,6 +1,6 @@
 {
   "name": "@axiomnode-lab/guard",
-  "version": "0.7.2",
+  "version": "0.8.0-beta.1",
   "description": "Zero-runtime-dependency security SDK for Node.js: webhooks (GitHub, Stripe, Slack, Meta, Standard Webhooks), request policy, idempotency, API keys, safe fetches, headers, cookies, CORS, CSRF, SSRF guardrails, rate limiting, redaction, secret scanning and framework adapters.",
   "type": "module",
   "main": "./dist/index.js",
@@ -203,11 +203,12 @@
   "author": "AxiomNode Lab contributors",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
     "@types/node": "25.1.0",
     "typescript": "5.8.3"
-  }
+  },
+  "packageManager": "npm@11.21.0"
 }

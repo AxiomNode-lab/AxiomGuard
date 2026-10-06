@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24, 26]
+        node: [22, 24, 26]
         os: [ubuntu-latest]
         include:
           - { os: windows-latest, node: 24 }
@@ -41,12 +41,9 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run test:types
-      - name: Coverage with thresholds (Node 22+ only; Node 20 lacks the include/threshold flags)
-        if: matrix.node != 20 && matrix.os == 'ubuntu-latest'
+      - name: Coverage with thresholds
+        if: matrix.os == 'ubuntu-latest'
         run: npm run test:coverage -- --test-coverage-include='dist/**' --test-coverage-exclude='dist/adapters/redis.js' --test-coverage-lines=88 --test-coverage-functions=85 --test-coverage-branches=70
-      - name: Coverage report only (Node 20 cannot enforce thresholds)
-        if: matrix.node == 20
-        run: npm run test:coverage
       - run: npm run test:package
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
       - name: Package shape (publint + arethetypeswrong)
