@@ -22,15 +22,13 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
           MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
           if [ "$EVENT_NAME" = "release" ]; then
-            case "$RELEASE_TAG" in
-              v[0-9]*.[0-9]*.[0-9]*) ;;
-              *) echo "::error::Release tag must use vMAJOR.MINOR.PATCH; got $RELEASE_TAG"; exit 1 ;;
-            esac
+            node scripts/check-release-tag.mjs
             RELEASE_SHA="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
             if [ "$RELEASE_SHA" != "$MAIN_SHA" ]; then
               echo "::error::Release tag $RELEASE_TAG must point to the current main commit $MAIN_SHA; got $RELEASE_SHA."
@@ -61,7 +59,7 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Ensure npm supports trusted publishing
-        run: npm install --global npm@11.5.1
+        run: npm install --global npm@11.21.0
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -72,14 +70,21 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
+          DIST_TAG="$(node -p "require('./package.json').version.includes('-') ? 'beta' : 'latest'")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "dist-tag=${DIST_TAG}" >> "$GITHUB_OUTPUT"
           set +e
           npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org >/tmp/axiomguard-view.out 2>/tmp/axiomguard-view.err
           STATUS=$?
           set -e
           if [ "$STATUS" -eq 0 ]; then
+            EXISTING_TAG="$(npm view "@axiomnode-lab/guard" "dist-tags.${DIST_TAG}" --registry=https://registry.npmjs.org 2>/dev/null || true)"
+            if [ "$EXISTING_TAG" != "$VERSION" ]; then
+              echo "::error::${VERSION} already exists on npmjs but dist-tag ${DIST_TAG} does not point to it."
+              exit 1
+            fi
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "@axiomnode-lab/guard@${VERSION} already exists on npmjs; skipping."
+            echo "@axiomnode-lab/guard@${VERSION} already exists on npmjs with dist-tag ${DIST_TAG}; skipping."
           elif grep -Eqi 'E404|404 Not Found' /tmp/axiomguard-view.err; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
           else
@@ -89,7 +94,7 @@ jobs:
           fi
       - name: Publish public package with npm Trusted Publishing
         if: steps.version.outputs.publish == 'true'
-        run: npm publish --registry=https://registry.npmjs.org --access public
+        run: npm publish --registry=https://registry.npmjs.org --access public --tag "${{ steps.version.outputs.dist-tag }}"
       - name: Verify package version on npmjs
         if: steps.version.outputs.publish == 'true'
         shell: bash
@@ -100,8 +105,9 @@ jobs:
           # verification window without treating eventual consistency as a publish failure.
           for ATTEMPT in {1..12}; do
             ACTUAL="$(npm view "@axiomnode-lab/guard@${VERSION}" version --registry=https://registry.npmjs.org 2>/dev/null || true)"
-            if [ "$ACTUAL" = "$VERSION" ]; then
-              echo "Verified @axiomnode-lab/guard@${VERSION} on npmjs."
+            TAGGED="$(npm view "@axiomnode-lab/guard" "dist-tags.${DIST_TAG}" --registry=https://registry.npmjs.org 2>/dev/null || true)"
+            if [ "$ACTUAL" = "$VERSION" ] && [ "$TAGGED" = "$VERSION" ]; then
+              echo "Verified @axiomnode-lab/guard@${VERSION} on npmjs with dist-tag ${DIST_TAG}."
               exit 0
             fi
             if [ "$ATTEMPT" -lt 12 ]; then
