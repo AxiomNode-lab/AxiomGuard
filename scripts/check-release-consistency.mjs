@@ -6,7 +6,6 @@ const changelog = await readFile('CHANGELOG.md', 'utf8');
 
 const version = packageJson.version;
 const lockRootVersion = lockfile.packages?.['']?.version;
-const lockTopLevelVersion = lockfile.version === 3 ? lockfile.version && lockfile.packages?.['']?.version : lockfile.version;
 const changelogHeading = `## [${version}]`;
 
 const failures = [];
