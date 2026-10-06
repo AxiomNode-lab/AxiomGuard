@@ -100,6 +100,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
         run: |
           # npm registry propagation can lag successful publication. Allow a bounded
           # verification window without treating eventual consistency as a publish failure.
