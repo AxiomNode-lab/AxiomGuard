@@ -798,7 +798,7 @@ For those problems, add AI-specific validation, authorization, content safety, d
 
 ---
 
-# 6. API keys
+# 7. API keys
 
 Use AxiomGuard API keys for machine-to-machine authentication where your application needs a generated credential.
 
@@ -882,7 +882,7 @@ Keep the pepper outside the database and outside source control.
 
 ---
 
-# 7. Webhooks
+# 8. Webhooks
 
 Webhook verification is one of the most important places to use AxiomGuard correctly.
 
@@ -1025,7 +1025,7 @@ For every provider:
 
 ---
 
-# 8. CSRF protection
+# 9. CSRF protection
 
 CSRF is mainly a browser problem.
 
@@ -1091,7 +1091,7 @@ Do not set `allowNoOrigin: true` globally just to make API clients work. Restric
 
 ---
 
-# 9. CORS
+# 10. CORS
 
 CORS and CSRF are **not the same thing**.
 
@@ -1147,7 +1147,7 @@ AxiomGuard validates the requested header names before reflecting them.
 
 ---
 
-# 10. Security headers
+# 11. Security headers
 
 The low-level API is useful when you already have your own middleware.
 
@@ -1197,7 +1197,7 @@ Store the nonce in request/response state so your template can put the same nonc
 
 ---
 
-# 11. Safe outbound requests and SSRF
+# 12. Safe outbound requests and SSRF
 
 SSRF happens when an attacker influences a URL and your server makes the request on their behalf.
 
@@ -1274,7 +1274,7 @@ Never enable that option for user-controlled URLs in production.
 
 ---
 
-# 12. Idempotency
+# 13. Idempotency
 
 Idempotency is useful when a client may retry the same write because of a timeout.
 
@@ -1378,7 +1378,7 @@ If clients need full response replay, store the application result in durable ap
 
 ---
 
-# 13. Rate limiting
+# 14. Rate limiting
 
 AxiomGuard provides a fixed-window rate-limit primitive.
 
@@ -1456,7 +1456,7 @@ const store = createNodeRedisRateLimitStore(redis);
 
 ---
 
-# 14. Environment variable validation
+# 15. Environment variable validation
 
 Instead of reading everything from `process.env` and hoping it is correct:
 
@@ -1505,7 +1505,7 @@ Do not put real secrets into source code just because a library example accepts 
 
 ---
 
-# 15. Secret-safe logging
+# 16. Secret-safe logging
 
 Accidentally logging credentials is a common production mistake.
 
@@ -1555,7 +1555,7 @@ Prefer structured logs with only the fields you actually need.
 
 ---
 
-# 16. Secure cookies
+# 17. Secure cookies
 
 Use AxiomGuard when your application builds `Set-Cookie` values directly.
 
@@ -1601,7 +1601,7 @@ When clearing a cookie, use matching attributes so the browser removes the inten
 
 ---
 
-# 17. Safe filesystem paths
+# 18. Safe filesystem paths
 
 If users can choose filenames or upload locations, never concatenate paths blindly.
 
@@ -1639,7 +1639,7 @@ If the directory may contain symlinks that point outside the intended directory,
 
 ---
 
-# 18. Repository secret scanner
+# 19. Repository secret scanner
 
 AxiomGuard also includes a command-line scanner.
 
@@ -1718,7 +1718,7 @@ If a finding is an actual credential:
 
 ---
 
-# 19. GitHub Action
+# 20. GitHub Action
 
 AxiomGuard can scan your repository in GitHub Actions.
 
@@ -1764,7 +1764,7 @@ See [GitHub Action documentation](GITHUB_ACTION.md) for the complete input and o
 
 ---
 
-# 20. Docker scanner
+# 21. Docker scanner
 
 You can also use the published container:
 
@@ -1779,7 +1779,7 @@ For production automation, pin the container image to a reviewed immutable diges
 
 ---
 
-# 21. A simple production architecture
+# 22. A simple production architecture
 
 A beginner-friendly way to think about AxiomGuard is in layers.
 
@@ -1827,7 +1827,7 @@ The important idea is that AxiomGuard provides controls **around** your applicat
 
 ---
 
-# 22. What should be configured once vs per request?
+# 23. What should be configured once vs per request?
 
 A useful beginner rule:
 
@@ -1857,7 +1857,7 @@ This keeps configuration errors visible early and avoids rebuilding the same pol
 
 ---
 
-# 23. Common beginner mistakes
+# 24. Common beginner mistakes
 
 ## Mistake 1: trusting all `X-Forwarded-For`
 
@@ -1954,7 +1954,7 @@ and log only the minimum information you need.
 
 ---
 
-# 24. Recommended first deployment
+# 25. Recommended first deployment
 
 For a typical Express API, a sensible first setup is:
 
@@ -1977,7 +1977,7 @@ Do not enable every advanced feature just because it exists. Start with the prot
 
 ---
 
-# 25. Troubleshooting
+# 26. Troubleshooting
 
 ## "My webhook signature is always invalid"
 
@@ -2036,7 +2036,7 @@ Store durable results in the application/database layer when full response repla
 
 ---
 
-# 26. Where to go next
+# 27. Where to go next
 
 After this guide, use the deeper documentation:
 
