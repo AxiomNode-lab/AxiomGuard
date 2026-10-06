@@ -47,7 +47,7 @@ for (const name of entries) {
         const pinnedAction = /^[0-9a-f]{40}$/i.test(ref);
         const pinnedDockerImage = target.startsWith('docker://') && /^sha256:[0-9a-f]{64}$/i.test(ref);
         if (!pinnedAction && !pinnedDockerImage) {
-          violations.push(name + ':' + (index + 1) + ' uses a mutable external action ref: ' + target);
+          violations.push(`${name}:${index + 1} uses a mutable external action ref: ${target}`);
         }
       }
     }
