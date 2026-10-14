@@ -15,6 +15,8 @@ AxiomGuard (published as `@axiomnode-lab/guard`) is a modular security toolkit f
 
 Use the complete package when convenience matters, or import a focused subpath when you only need one control.
 
+If AxiomGuard solves a real problem in your project, consider starring the repository or opening an issue with your integration feedback. Small reproducible examples and focused pull requests are especially useful.
+
 - **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
 - **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
 - **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
@@ -49,6 +51,10 @@ npm exec --yes @axiomnode-lab/guard@beta -- scan .
 ## New to AxiomGuard?
 
 Start with the [Beginner Guide](docs/BEGINNER_GUIDE.md). It walks through installation, the framework adapters, API keys, webhooks, CSRF, CORS, SSRF-aware fetches, idempotency, rate limiting, secure cookies, logging, the repository scanner, GitHub Actions, Docker usage, troubleshooting, and common mistakes.
+
+## Run AxiomGuard in CI — including AI-assisted review
+
+AxiomGuard includes a composite GitHub Action that scans a checked-out repository, emits SARIF for GitHub code scanning, and (in the `v0.8.0-beta.2` prerelease) produces a machine-readable AI/CI-safe report without matched credential values. Copy the [ready-to-use workflow example](examples/workflows/axiomguard-ai-ci.yml) into `.github/workflows/`. The example uses a prerelease for the `agent-report` output; stable `v0.7.1` setup is documented in the [GitHub Action guide](docs/GITHUB_ACTION.md).
 
 ## Quick start
 
