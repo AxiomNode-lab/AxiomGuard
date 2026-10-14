@@ -15,6 +15,8 @@ AxiomGuard (published as `@axiomnode-lab/guard`) is a modular security toolkit f
 
 Use the complete package when convenience matters, or import a focused subpath when you only need one control.
 
+If AxiomGuard solves a real problem in your project, consider starring the repository or opening an issue with your integration feedback. Small reproducible examples and focused pull requests are especially useful.
+
 - **Zero npm runtime dependencies** — no transitive runtime packages to pull in.
 - **Fail-closed security controls** — configuration errors are rejected during setup, while malformed request metadata is handled defensively by the request adapters.
 - **Framework-neutral** — first-class adapters for Express, Fastify, Hono and web-standard Fetch runtimes.
