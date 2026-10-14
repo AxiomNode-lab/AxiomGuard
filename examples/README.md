@@ -12,3 +12,7 @@ bash examples/scanner.sh
 ```
 
 The examples import from `../dist/index.js`; in your own project replace that with `@axiomnode-lab/guard` or a subpath such as `@axiomnode-lab/guard/webhooks`.
+
+## GitHub Actions workflow example
+
+- [AxiomGuard AI/CI report workflow](workflows/axiomguard-ai-ci.yml) — copy into your repository's `.github/workflows/` directory. This example pins the `v0.8.0-beta.2` prerelease for its AI/CI-safe JSON report output; for the stable `v0.7.1` action, use [the stable GitHub Action guide](../docs/GITHUB_ACTION.md).
