@@ -50,6 +50,12 @@ npm exec --yes @axiomnode-lab/guard@beta -- scan .
 
 Start with the [Beginner Guide](docs/BEGINNER_GUIDE.md). It walks through installation, the framework adapters, API keys, webhooks, CSRF, CORS, SSRF-aware fetches, idempotency, rate limiting, secure cookies, logging, the repository scanner, GitHub Actions, Docker usage, troubleshooting, and common mistakes.
 
+## Community and project support
+
+- **Report a reproducible issue or suggest an improvement:** use [GitHub Issues](https://github.com/AxiomNode-lab/AxiomGuard/issues).
+- **Contribute code, tests, or documentation:** read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+- **Discuss sponsorship, grants, or integration work:** see the [AxiomNode-lab open-source support guide](https://github.com/AxiomNode-lab/.github/blob/main/profile/OPEN_SOURCE_SUPPORT.md). Support priorities focus on maintenance, release reliability, integration tests, documentation, and security quality. A guide is not evidence that a grant or sponsorship has been awarded.
+
 ## Quick start
 
 ### Secure an Express API
