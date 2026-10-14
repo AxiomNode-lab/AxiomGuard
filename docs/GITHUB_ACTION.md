@@ -36,6 +36,24 @@ jobs:
 
 `security-events: write` is needed only for uploading results to GitHub code scanning. The scan itself requires read-only repository contents.
 
+## AI/CI-safe report output (0.8.0-beta.2 prerelease)
+
+The `agent-report` input/output is available in the `v0.8.0-beta.2` prerelease. It writes a JSON report containing finding metadata, fingerprints, severity, and remediation guidance without including matched credential values. This is designed for downstream CI automation and AI-assisted review; it is not proof that a repository is safe, and downstream agents should treat the report as untrusted input.
+
+For a copy-paste workflow that runs the scan, uploads SARIF to GitHub code scanning where token permissions allow, and stores the report as a short-lived workflow artifact, see [the AI/CI workflow example](../examples/workflows/axiomguard-ai-ci.yml).
+
+```yaml
+- id: axiomguard
+  uses: AxiomNode-lab/AxiomGuard@v0.8.0-beta.2
+  with:
+    path: .
+    fail-on-findings: 'true'
+    annotations: 'true'
+    agent-report: 'true'
+```
+
+The output is available as `${{ steps.axiomguard.outputs['agent-report'] }}`. The stable `v0.7.1` example above remains the stable-release path; do not assume beta-only inputs are available in that release.
+
 ## Inputs
 
 | Input | Default | Meaning |
