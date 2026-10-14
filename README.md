@@ -50,6 +50,10 @@ npm exec --yes @axiomnode-lab/guard@beta -- scan .
 
 Start with the [Beginner Guide](docs/BEGINNER_GUIDE.md). It walks through installation, the framework adapters, API keys, webhooks, CSRF, CORS, SSRF-aware fetches, idempotency, rate limiting, secure cookies, logging, the repository scanner, GitHub Actions, Docker usage, troubleshooting, and common mistakes.
 
+## Run AxiomGuard in CI — including AI-assisted review
+
+AxiomGuard includes a composite GitHub Action that scans a checked-out repository, emits SARIF for GitHub code scanning, and (in the `v0.8.0-beta.2` prerelease) produces a machine-readable AI/CI-safe report without matched credential values. Copy the [ready-to-use workflow example](examples/workflows/axiomguard-ai-ci.yml) into `.github/workflows/`. The example uses a prerelease for the `agent-report` output; stable `v0.7.1` setup is documented in the [GitHub Action guide](docs/GITHUB_ACTION.md).
+
 ## Quick start
 
 ### Secure an Express API
