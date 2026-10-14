@@ -4,7 +4,7 @@ A practical, step-by-step introduction to using AxiomGuard in a real Node.js or 
 
 This guide assumes you are new to AxiomGuard and may be new to application security. You do not need to understand every security concept before starting. Follow the sections in order, then use the individual recipes when you need a specific protection.
 
-> **Current release status:** the repository is preparing the `0.8.0-beta.1` prerelease. The stable published release is still `0.7.1` until the beta is explicitly published. The examples in this guide describe the current API in `main`.
+> **Release status (checked 2026-10-14):** the repository's `main` branch contains `0.8.0-beta.2` development source. The published npm `beta` tag currently points to `0.8.0-beta.1`, while the stable `latest` tag points to `0.7.1`. Installing without a prerelease tag gets the stable release; `npm install @axiomnode-lab/guard@beta` installs the published beta. Examples below describe current source in `main`, so some APIs may differ from the published beta. Recheck the [npm versions](https://www.npmjs.com/package/@axiomnode-lab/guard?activeTab=versions) before reproducing behavior.
 
 ## 1. What AxiomGuard does
 
