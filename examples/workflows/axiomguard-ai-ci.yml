@@ -1,0 +1,51 @@
+name: AxiomGuard AI/CI Security Report
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The scanner needs read-only source access. Code scanning upload needs write access.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # This example uses the 0.8.0-beta.2 prerelease because agent-report is
+      # a beta feature. For stable v0.7.1 SARIF scanning, see docs/GITHUB_ACTION.md.
+      - name: Scan with AxiomGuard
+        id: axiomguard
+        uses: AxiomNode-lab/AxiomGuard@v0.8.0-beta.2
+        with:
+          path: .
+          fail-on-findings: 'true'
+          annotations: 'true'
+          agent-report: 'true'
+
+      # Forked pull requests may not receive the token permission required for
+      # code-scanning uploads. The scanner still runs; upload SARIF only for
+      # same-repository PRs and push/manual runs.
+      - name: Upload SARIF to GitHub code scanning
+        if: always() && steps.axiomguard.outputs.sarif != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        with:
+          sarif_file: ${{ steps.axiomguard.outputs.sarif }}
+          category: axiomguard-secrets
+
+      # The report contains finding metadata and remediation guidance, not
+      # matched credential values. Treat it as an internal security report.
+      - name: Upload AI/CI-safe report
+        if: always() && steps.axiomguard.outputs['agent-report'] != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: axiomguard-agent-report
+          path: ${{ steps.axiomguard.outputs['agent-report'] }}
+          if-no-files-found: ignore
+          retention-days: 7
