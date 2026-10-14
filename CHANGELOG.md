@@ -23,7 +23,7 @@ AI/CI integration and distribution usability update for the 0.8.0 beta line.
 
 ## [0.8.0-beta.1] - 2026-10-07
 
-Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the prior release-candidate cycle. The GitHub Release and registry publication are not created yet.
+Beta release candidate for the 0.8.0 line. This prerelease includes the security and release-pipeline hardening prepared during the prior release-candidate cycle. The package is published to npm as `0.8.0-beta.1` under the `beta` dist-tag; the stable `latest` dist-tag remains `0.7.1` as checked on 2026-10-14. npm publication and GitHub Release artifacts are separate release surfaces and must be verified independently.
 
 ### Breaking
 
